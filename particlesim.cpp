@@ -8,6 +8,7 @@
 #include "hardware/timer.h"
 
 #include "MPU6050.h"
+#include "hub75.h"
 
 // I2C defines
 // This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
@@ -25,7 +26,8 @@ int64_t alarm_callback(alarm_id_t id, void *user_data) {
 }
 
 
-int main()
+
+[[noreturn]] int main()
 {
     stdio_init_all();
 
@@ -50,19 +52,33 @@ int main()
 
     mpu.reset();
 
+    hub75_init();
+
+    multicore_launch_core1(hub75_main);
+
+    sleep_ms(100);
+    sleep_ms(3000);
+    //multicore_fifo_push_blocking(DISPLAY_TRIGGER_REDRAW_MAGIC_NUMBER);
+
     while (1) {
         mpu.update();
 
-        // These are the raw numbers from the chip, so will need tweaking to be really useful.
-        // See the datasheet for more information
         printf("Accel: X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.ax, mpu.ay, mpu.az);
         printf("Norm:  X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.axn, mpu.ayn, mpu.azn);
         printf("Gyro:  X = % 3.6f, Y = % 3.6f, Z = % 3.6f\n", mpu.gx, mpu.gy, mpu.gz);
-        // Temperature is simple so use the datasheet calculation to get deg C.
-        // Note this is chip temperature.
+
         printf("Temp:  % 2.8f\n", mpu.temp);
 
-        sleep_ms(100);
+        //pio_sm_put_blocking(hub75_pio, hub75_sm, 1);
+        sleep_ms(1000/60);
+        //pio_sm_put_blocking(hub75_pio, hub75_sm, 0);
+        //sleep_ms(200);
+
+        printf("Push\n");
+        multicore_fifo_push_blocking(DISPLAY_TRIGGER_REDRAW_MAGIC_NUMBER);
+        multicore_fifo_pop_blocking();
+        // TODO: do simulation here
+        printf("Pop\n");
     }
 
     // Blink code
@@ -75,6 +91,4 @@ int main()
         gpio_put(PICO_DEFAULT_LED_PIN, 0);
         sleep_ms(250);
     }*/
-
-    return 0;
 }

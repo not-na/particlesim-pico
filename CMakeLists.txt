@@ -19,7 +19,9 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(particlesim particlesim.cpp MPU6050.cpp MPU6050.h)
+add_executable(particlesim particlesim.cpp MPU6050.cpp MPU6050.h hub75.cpp hub75.h)
+
+pico_generate_pio_header(particlesim ${CMAKE_CURRENT_LIST_DIR}/hub75.pio)
 
 #pico_set_program_name(particlesim "particlesim")
 pico_set_program_version(particlesim "0.1")
@@ -32,6 +34,7 @@ target_link_libraries(particlesim pico_stdlib)
 
 # Add any user requested libraries
 target_link_libraries(particlesim
+        pico_multicore
         hardware_i2c
         hardware_dma
         hardware_pio
