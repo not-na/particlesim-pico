@@ -50,6 +50,8 @@ enum DISPLAY_REDRAWSTATE {
     DISPLAY_REDRAWSTATE_PARTICLES,
 };
 
+extern const uint32_t* display_background;
+
 // TODO: write docs for hub75_* functions
 void hub75_init();
 

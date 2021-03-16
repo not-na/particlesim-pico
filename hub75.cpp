@@ -20,7 +20,8 @@
  *  Check if simulation step is done by checking SIO FIFO for a magic number
  *  If so, set flag display_redraw
  *
- *  Until DMA / PIO shifting is done, call display update routine
+ *  Wait until DMA / PIO shifting is done
+ *  Push out alignment pixels
  *
  *  Pulse LAT and OE using hub75_row PIO SM
  *
@@ -78,6 +79,8 @@ uint32_t display_buffers[2][DISPLAY_FRAMEBUFFER_SIZE];
 
 uint32_t* display_front_buf = &display_buffers[0][0];
 uint32_t* display_back_buf = &display_buffers[1][0];
+
+const uint32_t* display_background = NULL;
 
 PIO display_pio = pio0;
 uint display_sm_data, display_sm_row;
@@ -276,19 +279,27 @@ DISPLAY_REDRAWSTATE hub75_update(DISPLAY_REDRAWSTATE state) {
 
         if (state == DISPLAY_REDRAWSTATE_CLEAR) {
             // Copy one row per iteration
-            /*int startaddr = display_redraw_curidx;
-            if (display_redraw_curidx > DISPLAY_SCAN) {
+            if (display_background == NULL) {
+                state = DISPLAY_REDRAWSTATE_PARTICLES;
+                display_redraw_curidx = 0;
+                continue;
+            }
+
+            int startaddr = display_redraw_curidx*DISPLAY_SIZE*2;
+            if (display_redraw_curidx >= DISPLAY_SCAN) {
                 // Interleave-shifted row
-                startaddr = display_redraw_curidx-DISPLAY_SCAN+1;
-            }*/
+                startaddr = (display_redraw_curidx-DISPLAY_SCAN)*DISPLAY_SIZE*2+1;
+            }
 
             for (int x = 0; x < DISPLAY_SIZE; x++) {
             //for (int x = startaddr; x < DISPLAY_SIZE; x+=2) {
-                //display_back_buf[x] = 0x00FFFFFF; // TODO: actually copy from somewhere
+                //display_back_buf[x] = 0x00FFFFFF;
                 //display_back_buf[x] = (x*8) << 16 | (display_redraw_curidx*8) << 8 | 16 << 0;
 
-                uint32_t c = (x*8) << 16 | (display_redraw_curidx*8) << 8 | display_framenum << 0;
-                hub75_draw_pixel(display_back_buf, x, display_redraw_curidx, c);
+                //uint32_t c = (x*8) << 16 | (display_redraw_curidx*8) << 8 | display_framenum << 0;
+                //hub75_draw_pixel(display_back_buf, x, display_redraw_curidx, c);
+
+                display_back_buf[startaddr+2*x] = display_background[display_redraw_curidx*DISPLAY_SIZE+x];
             }
 
             display_redraw_curidx++;

@@ -3,17 +3,18 @@
 // Roughly based on Pico MPU6050 app note
 
 MPU6050::MPU6050() {
-    i2c_init(MPU6050_I2C_INSTANCE, 400 * 1000);
-    gpio_set_function(MPU6050_SDA_PIN, GPIO_FUNC_I2C);
-    gpio_set_function(MPU6050_SCL_PIN, GPIO_FUNC_I2C);
-    gpio_pull_up(MPU6050_SDA_PIN);
-    gpio_pull_up(MPU6050_SCL_PIN);
 
     // Make the I2C pins available to picotool
     bi_decl(bi_2pins_with_func(MPU6050_SDA_PIN, MPU6050_SCL_PIN, GPIO_FUNC_I2C));
 }
 
 void MPU6050::reset() {
+    i2c_init(MPU6050_I2C_INSTANCE, 400 * 1000);
+    gpio_set_function(MPU6050_SDA_PIN, GPIO_FUNC_I2C);
+    gpio_set_function(MPU6050_SCL_PIN, GPIO_FUNC_I2C);
+    gpio_pull_up(MPU6050_SDA_PIN);
+    gpio_pull_up(MPU6050_SCL_PIN);
+
     // This function brings the entire MPU6050 into a known state
     this->ax = 0;
     this->ay = 0;

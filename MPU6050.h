@@ -6,9 +6,9 @@
 #include "pico/binary_info.h"
 #include "hardware/i2c.h"
 
-#define MPU6050_I2C_INSTANCE i2c_default
-#define MPU6050_SDA_PIN PICO_DEFAULT_I2C_SDA_PIN
-#define MPU6050_SCL_PIN PICO_DEFAULT_I2C_SCL_PIN
+#define MPU6050_I2C_INSTANCE i2c0
+#define MPU6050_SDA_PIN 4
+#define MPU6050_SCL_PIN 5
 
 #define MPU6050_ADDR 0x68
 
@@ -33,12 +33,12 @@ public:
     void updateGyroscope();
     void updateTemperature();
 
-    float ax, ay, az;
-    float axn, ayn, azn;
+    float ax{}, ay{}, az{};
+    float axn{}, ayn{}, azn{};
 
-    float gx, gy, gz;
+    float gx{}, gy{}, gz{};
 
-    double temp;
+    double temp{};
 
 private:
     static void write_reg8(uint8_t reg, uint8_t data);
