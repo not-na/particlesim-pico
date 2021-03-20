@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 # initalize pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
-set(PICO_SDK_PATH "~/pico/pico-sdk")
+#set(PICO_SDK_PATH "~/pico/pico-sdk")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -19,7 +19,12 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(particlesim particlesim.cpp MPU6050.cpp MPU6050.h hub75.cpp hub75.h)
+add_executable(particlesim
+        particlesim.cpp
+        MPU6050.cpp MPU6050.h
+        hub75.cpp hub75.h
+        simulation.cpp simulation.h
+        )
 
 pico_generate_pio_header(particlesim ${CMAKE_CURRENT_LIST_DIR}/hub75.pio)
 

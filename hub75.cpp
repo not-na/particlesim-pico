@@ -80,7 +80,10 @@ uint32_t display_buffers[2][DISPLAY_FRAMEBUFFER_SIZE];
 uint32_t* display_front_buf = &display_buffers[0][0];
 uint32_t* display_back_buf = &display_buffers[1][0];
 
-const uint32_t* display_background = NULL;
+const uint32_t* display_background = nullptr;
+
+uint32_t display_particlecount;
+particle_t display_particles[SIM_MAX_PARTICLECOUNT];
 
 PIO display_pio = pio0;
 uint display_sm_data, display_sm_row;
@@ -96,6 +99,27 @@ int display_redraw_curidx = 0;
 uint8_t display_framenum = 0;
 
 void hub75_init() {
+    // Information for picotool
+    bi_decl(bi_3pins_with_names(
+            DISPLAY_DATAPINS_BASE, "HUB75 R0 Pin",
+            DISPLAY_DATAPINS_BASE+1, "HUB75 G0 Pin",
+            DISPLAY_DATAPINS_BASE+2, "HUB75 B0 Pin"));
+    bi_decl(bi_3pins_with_names(
+            DISPLAY_DATAPINS_BASE+3, "HUB75 R1 Pin",
+            DISPLAY_DATAPINS_BASE+4, "HUB75 G1 Pin",
+            DISPLAY_DATAPINS_BASE+5, "HUB75 B1 Pin"));
+    bi_decl(bi_4pins_with_names(
+            DISPLAY_ROWSEL_BASE, "HUB75 A Pin",
+            DISPLAY_ROWSEL_BASE+1, "HUB75 B Pin",
+            DISPLAY_ROWSEL_BASE+2, "HUB75 C Pin",
+            DISPLAY_ROWSEL_BASE+3, "HUB75 D Pin"
+            ));
+    bi_decl(bi_3pins_with_names(
+            DISPLAY_CLKPIN, "HUB75 CLK Pin",
+            DISPLAY_STROBEPIN, "HUB75 LAT / STB Pin",
+            DISPLAY_OENPIN, "HUB75 OEn Pin"
+            ));
+
     // Initialize PIO
     display_sm_data = pio_claim_unused_sm(display_pio, true);
     display_sm_row = pio_claim_unused_sm(display_pio, true);
@@ -137,16 +161,8 @@ void hub75_init() {
             );
 }
 
-[[noreturn]] void hub75_main() {
+[[noreturn]] void __not_in_flash_func(hub75_main)() {
     DISPLAY_REDRAWSTATE redrawstate = DISPLAY_REDRAWSTATE_IDLE;
-
-    /*for (int i = 0; i < DISPLAY_FRAMEBUFFER_SIZE; ++i) {
-        //display_front_buf[i] = i*128;//0xFFFFFFFF;//255 << 16 | 128 << 8 | 64 << 0;
-        //display_back_buf[i] = i*128;//0xFFFFFFFF;//255 << 16 | 128 << 8 | 64 << 0;
-        uint32_t c = 0x00330033;//0x00040404;//(i%DISPLAY_SIZE)*8 << 16 | (i/DISPLAY_SIZE) << 8 | 64 << 0;
-        display_front_buf[i] = c;
-        display_back_buf[i] = c;
-    }*/
 
     // Fill both framebuffers with a default pattern
     for (int x = 0; x < DISPLAY_SIZE; ++x) {
@@ -157,26 +173,8 @@ void hub75_init() {
         }
     }
 
-    /*display_front_buf[0] = 0x0000FF00;
-    display_back_buf[0] =  0x0000FF00;
-
-    display_front_buf[1] = 0x000000FF;
-    display_back_buf[1] =  0x000000FF;
-
-    display_front_buf[1022] = 0x00000022;
-    display_back_buf[1022] =  0x00000022;
-
-    display_front_buf[1023] = 0x00002200;
-    display_back_buf[1023] =  0x00002200;
-
-    hub75_draw_pixel(display_front_buf, 0, 0, 0x00FF0000);
-    hub75_draw_pixel(display_back_buf,  0, 0, 0x00FF0000);
-
-    hub75_draw_pixel(display_front_buf, 1, 0, 0x00330000);
-    hub75_draw_pixel(display_back_buf,  1, 0, 0x00330000);
-
-    hub75_draw_pixel(display_front_buf, 0, 16, 0x00FF00FF);
-    hub75_draw_pixel(display_back_buf,  0, 16, 0x00FF00FF);*/
+    // Simulation waits until we are ready
+    multicore_fifo_push_blocking(DISPLAY_TRIGGER_SIMULATION_MAGIC_NUMBER);
 
     while (true) {
         // per-Frame loop
@@ -266,7 +264,7 @@ void hub75_init() {
     }
 }
 
-DISPLAY_REDRAWSTATE hub75_update(DISPLAY_REDRAWSTATE state) {
+DISPLAY_REDRAWSTATE __not_in_flash_func(hub75_update)(DISPLAY_REDRAWSTATE state) {
     if (state == DISPLAY_REDRAWSTATE_IDLE) {
         // Fresh start, start by clearing
         state = DISPLAY_REDRAWSTATE_CLEAR;
@@ -279,12 +277,15 @@ DISPLAY_REDRAWSTATE hub75_update(DISPLAY_REDRAWSTATE state) {
 
         if (state == DISPLAY_REDRAWSTATE_CLEAR) {
             // Copy one row per iteration
-            if (display_background == NULL) {
+            if (display_background == nullptr) {
                 state = DISPLAY_REDRAWSTATE_PARTICLES;
                 display_redraw_curidx = 0;
                 continue;
             }
 
+            // Note that while we could use hub75_draw_pixel() here, it would be
+            // far less efficient. Since we always copy a row at a time, we can
+            // pre-calculate the starting address and thus save us a branch on every pixel
             int startaddr = display_redraw_curidx*DISPLAY_SIZE*2;
             if (display_redraw_curidx >= DISPLAY_SCAN) {
                 // Interleave-shifted row
@@ -292,26 +293,46 @@ DISPLAY_REDRAWSTATE hub75_update(DISPLAY_REDRAWSTATE state) {
             }
 
             for (int x = 0; x < DISPLAY_SIZE; x++) {
-            //for (int x = startaddr; x < DISPLAY_SIZE; x+=2) {
-                //display_back_buf[x] = 0x00FFFFFF;
-                //display_back_buf[x] = (x*8) << 16 | (display_redraw_curidx*8) << 8 | 16 << 0;
-
-                //uint32_t c = (x*8) << 16 | (display_redraw_curidx*8) << 8 | display_framenum << 0;
-                //hub75_draw_pixel(display_back_buf, x, display_redraw_curidx, c);
-
                 display_back_buf[startaddr+2*x] = display_background[display_redraw_curidx*DISPLAY_SIZE+x];
             }
 
             display_redraw_curidx++;
             if (display_redraw_curidx >= DISPLAY_SIZE) {
-                state = DISPLAY_REDRAWSTATE_PARTICLES;
+                if (display_particlecount > 0) {
+                    // Only proceed to draw particles if there are any
+                    state = DISPLAY_REDRAWSTATE_PARTICLES;
+                }
                 display_redraw_curidx = 0;
             }
         } else if (state == DISPLAY_REDRAWSTATE_PARTICLES) {
-            // Draw one particle per iteration
+            // Draw one or eight particles per iteration
 
-            state = DISPLAY_REDRAWSTATE_IDLE;
-            // TODO
+            if (display_redraw_curidx + 8 < display_particlecount) {
+                // If there are more than eight particles remaining, draw them at once
+                // Reduces overhead from loop, since the drawing itself is quite fast
+                for (int i = 0; i < 8; ++i) {
+                    hub75_draw_pixel(display_back_buf,
+                                     display_particles[display_redraw_curidx].x / 256,
+                                     display_particles[display_redraw_curidx].y / 256,
+                                     display_particles[display_redraw_curidx].color
+                    );
+                    display_redraw_curidx++;
+                }
+            } else {
+                // Not enough particles remaining, draw them one by one
+                hub75_draw_pixel(display_back_buf,
+                                 display_particles[display_redraw_curidx].x / 256,
+                                 display_particles[display_redraw_curidx].y / 256,
+                                 display_particles[display_redraw_curidx].color
+                );
+                display_redraw_curidx++;
+            }
+
+            if (display_redraw_curidx >= display_particlecount) {
+                // We're done, loop will break due to state
+                state = DISPLAY_REDRAWSTATE_IDLE;
+                display_redraw_curidx = 0;
+            }
         } else {
             // Fallback, should not normally happen
             state = DISPLAY_REDRAWSTATE_IDLE;
@@ -336,7 +357,7 @@ void hub75_pio_sm_clearstall() {
     display_pio->fdebug = txstall_mask;
 }
 
-static inline void hub75_draw_pixel(uint32_t* buf, uint32_t x, uint32_t y, uint32_t color) {
+static inline void __not_in_flash_func(hub75_draw_pixel)(uint32_t* buf, uint32_t x, uint32_t y, uint32_t color) {
     if (y<DISPLAY_SCAN) {
         // Normal, store pixel
         buf[y*DISPLAY_SIZE*2+2*x] = color;

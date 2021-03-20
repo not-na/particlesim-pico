@@ -10,6 +10,8 @@
 
 #include "hub75.pio.h"
 
+#include "simulation.h"
+
 // Size of the display, currently only square displays are supported
 #define DISPLAY_SIZE 32
 
@@ -33,7 +35,7 @@
 #define DISPLAY_CLKPIN 16
 // LAT, OE pins. Must be consecutive
 #define DISPLAY_STROBEPIN 17
-#define DISPLAY_OENPIN 18
+#define DISPLAY_OENPIN DISPLAY_STROBEPIN+1
 
 // Amount of pixels per framebuffer
 #define DISPLAY_FRAMEBUFFER_SIZE (DISPLAY_SIZE*DISPLAY_SIZE)
@@ -51,6 +53,9 @@ enum DISPLAY_REDRAWSTATE {
 };
 
 extern const uint32_t* display_background;
+
+extern uint32_t display_particlecount;
+extern particle_t display_particles[SIM_MAX_PARTICLECOUNT];
 
 // TODO: write docs for hub75_* functions
 void hub75_init();
