@@ -20,10 +20,10 @@ Usage:
 ./png_to_header.py --help
     Print this help page
 
-./png_to_header.py --directory <dir>
+./png_to_header.py [--gamma] --directory <dir>
     Convert all PNG files in a directory
 
-./png_to_header.py <ifile> [ofile] [size] [name]
+./png_to_header.py [--gamma] <ifile> [ofile] [size] [name]
     Convert a PNG to a C header file
 
 ifile: Input file name
@@ -33,6 +33,8 @@ name: Name of the variable in the header, based on ifile if not given
 
 The first argument must always be passed, later arguments are optional and can
 be omitted.
+
+If --gamma is passed, images will be gamma-corrected before conversion.
 """
 
 
@@ -60,7 +62,23 @@ DATA_LINE_PREFIX = b"    "
 PARTICLE_ENTRY = "    {x}, {y}, 0x{color:08x},\n"
 
 
-def convert_png(filename: str, size: int) -> Tuple[str, List[Tuple[int, int, int]]]:
+GAMMA = 2.4
+
+
+def gamma(s: float) -> float:
+    # Based on https://stackoverflow.com/a/61138576
+    # TODO: find right values for LED matrix panels
+    if s <= 0.04045:
+        return s / 12.92
+    else:
+        return ((s+0.055)/1.055)**2.4
+
+
+def gamma8b(s: int) -> int:
+    return int(255*gamma(s/255))
+
+
+def convert_png(filename: str, size: int, gamma_correct: bool) -> Tuple[str, List[Tuple[int, int, int]]]:
     r = png.Reader(filename=filename)
     w, h, row, info = r.asRGBA8()
 
@@ -79,7 +97,13 @@ def convert_png(filename: str, size: int) -> Tuple[str, List[Tuple[int, int, int
         ir = iter(ro)
         for c in zip(ir, ir, ir, ir):
             r, g, b, a = c
-            cn = r << 16 | g << 8 | b << 0
+
+            if gamma_correct:
+                r = gamma8b(r)
+                g = gamma8b(g)
+                b = gamma8b(b)
+
+            cn = r << 0 | g << 8 | b << 16
 
             if a != 0xFF:
                 # Particle
@@ -99,7 +123,7 @@ def convert_png(filename: str, size: int) -> Tuple[str, List[Tuple[int, int, int
     return str(dat.decode()), particles
 
 
-def convert_file(ifile: str, ofile: str, size: int, name=None) -> None:
+def convert_file(ifile: str, ofile: str, size: int, gamma_correct: bool, name=None) -> None:
     ifile = os.path.abspath(ifile)
     ofile = os.path.abspath(ofile)
 
@@ -107,7 +131,7 @@ def convert_file(ifile: str, ofile: str, size: int, name=None) -> None:
         name = ".".join(os.path.basename(ifile).split(".")[0:-1])
         name = name.replace(".", "_").replace("-", "_").replace(" ", "_").upper()
 
-    data, particles = convert_png(ifile, size)
+    data, particles = convert_png(ifile, size, gamma_correct)
 
     out = HEADER_TEMPLATE.format(
         name=name,
@@ -121,6 +145,12 @@ def convert_file(ifile: str, ofile: str, size: int, name=None) -> None:
 
 
 if __name__ == "__main__":
+    if "--gamma" in sys.argv:
+        sys.argv.remove("--gamma")
+        gamma_correct = True
+    else:
+        gamma_correct = False
+
     if "--help" in sys.argv:
         print(HELP_TEXT)
     elif "--directory" in sys.argv:
@@ -132,15 +162,15 @@ if __name__ == "__main__":
                 if fname.endswith(".png"):
                     print(f"Converting {fname}")
                     fname = os.path.join(sys.argv[2], fname)
-                    convert_file(fname, fname.replace(".png", ".h"), DEFAULT_SIZE)
+                    convert_file(fname, fname.replace(".png", ".h"), DEFAULT_SIZE, gamma_correct)
     elif len(sys.argv) == 2:
-        convert_file(sys.argv[1], sys.argv[1].replace(".png", ".h"), DEFAULT_SIZE)
+        convert_file(sys.argv[1], sys.argv[1].replace(".png", ".h"), DEFAULT_SIZE, gamma_correct)
     elif len(sys.argv) == 3:
-        convert_file(sys.argv[1], sys.argv[2], DEFAULT_SIZE)
+        convert_file(sys.argv[1], sys.argv[2], DEFAULT_SIZE, gamma_correct)
     elif len(sys.argv) == 4:
-        convert_file(sys.argv[1], sys.argv[2], int(sys.argv[3]))
+        convert_file(sys.argv[1], sys.argv[2], int(sys.argv[3]), gamma_correct)
     elif len(sys.argv) == 5:
-        convert_file(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4])
+        convert_file(sys.argv[1], sys.argv[2], int(sys.argv[3]), gamma_correct, sys.argv[4])
     else:
         print(f"Expected between 1 and 4 arguments, got {len(sys.argv)-1}!")
         print("Use the '--help' option to see a usage reference.")

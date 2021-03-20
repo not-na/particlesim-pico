@@ -14,6 +14,19 @@ The panel driving code is partially based on the hub75 example from the
 with DMA support, double-buffering and smart redrawing while waiting for the
 DMA controller.
 
+## User Interface
+
+The only input method currently supported are the two buttons, `SELECT` and
+`RESET`.
+
+By pressing `SELECT`, you can cycle through the different modes that are supported.
+These are first all the static images and simulation stages and then the animations.
+
+`RESET` resets the current mode to its starting point.
+
+Pressing `RESET` while `SELECT` is pressed causes the device to reboot into
+`BOOTSEL`-Mode, allowing for firmware updates over USB.
+
 ## Hardware
 
 The electronics consist of the following items:
@@ -30,7 +43,8 @@ down to 3.3V without much loss of brightness if a slight red hue is acceptable.
 
 Also, the 2A spec is based on the panel I had available, which would draw ~1.6A
 with an all-white screen. Panels from different manufacturers may differ and
-are also likely to vary from panel to panel.
+are also likely to vary from panel to panel. The current draw for a single simulation
+stage should always be constant, since pixels are only moving around.
 
 A smaller PSU is likely fine, since the screen should usually not be at full white.
 Still, a minimum of 1A is strongly recommended.
@@ -80,6 +94,8 @@ For the MPU6050, the following connections should be made:
 - SDA -> GP4
 - SCL -> GP5
 - INT -> 
+- VCC -> 3V3 Out
+- GND -> GND
 
 The INT connection is currently not used by the firmware, but may be added in
 future versions.
@@ -167,7 +183,7 @@ that are not fully opaque are treated as particles.
 During image conversion, transparent pixels are replaced by black pixels and stored
 in a separate list. The firmware treats any non-zero integer in the raw image data
 as an obstacle, making it possible to create invisible obstacles by manually editing
-the header file.
+the header file. The format for colors stored in the headers is BGR888, e.g. 0x00BBGGRR.
 
 Currently, the amount of particles is limited to 512 per image. This is mainly
 because the simulation takes more time for larger amounts of particles. The 512
@@ -179,7 +195,9 @@ Installing the firmware is very easy thanks to the UF2 Standard supported by the
 Pico / RP2040. To flash the firmware, hold down the BOOTSEL button *before* plugging
 the board in the USB port.
 
-After a few seconds, a new flash drive with the name `RPI-RP2` or similar should
+Alternatively, you can hold down `SELECT` and press `RESET` while select is pressed.
+
+After a few seconds, a new flash drive with the name `RPI-RP2` should
 show up in your file manager. Simply drag the new firmware UF2 file onto this
 drive. If successful, the Pico will unmount itself automatically and start the
 new firmware.

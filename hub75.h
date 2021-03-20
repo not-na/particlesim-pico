@@ -57,6 +57,8 @@ extern const uint32_t* display_background;
 extern uint32_t display_particlecount;
 extern particle_t display_particles[SIM_MAX_PARTICLECOUNT];
 
+extern uint32_t display_wait;
+
 // TODO: write docs for hub75_* functions
 void hub75_init();
 

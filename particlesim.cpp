@@ -2,6 +2,7 @@
 #include <string.h>
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
+#include "pico/bootrom.h"
 #include "hardware/i2c.h"
 #include "hardware/dma.h"
 #include "hardware/pio.h"
@@ -17,40 +18,47 @@
 #include "images/img_disttest.h"
 #include "images/img_square8.h"
 #include "images/img_zigzag.h"
+#include "images/img_dual.h"
+#include "images/img_linrainbow.h"
+#include "images/img_single.h"
+#include "images/img_blank.h"
 
-#define TPS 60
 
-#define MPU_SCALE 80
-#define MPU_PRESCALE (64.0f)
+#define TPS 120
+#define FIFO_TIMEOUT (1000/TPS*1000*2)
+
+#define MPU_SCALE 40
+#define MPU_PRESCALE (48.0f)
 #define SIM_ELASTICITY 180
 
 #define BTN_SELECT_PIN 2
 #define BTN_RESET_PIN 3
 
-MPU6050 mpu;
-
-bool btn_select_pressed = false;
-bool btn_reset_pressed = false;
+#define BTN_DEBOUNCE_MS 150
 
 /*
  * Background image format
  *
  * Backgrounds are represented as a flat array of DISPLAY_SIZE**2 uint32_t
  *
- * Each uint32_t represents a pixel, with components 0xAARRGGBB.
+ * Each uint32_t represents a pixel, with components 0xAABBGGRR.
  *
  * R, G and B are used for rendering. A is currently don't care, except for collision detection.
  *
  * A pixel is considered occupied if it is non-zero.
  * */
 
-#define BG_IMAGE_COUNT 4
+#define BG_IMAGE_COUNT 8
 
 const uint32_t* bg_images[BG_IMAGE_COUNT] = {
         IMG_RGBM,
         IMG_DISTTEST,
         IMG_SQUARE8,
         IMG_ZIGZAG,
+        IMG_DUAL,
+        IMG_LINRAINBOW,
+        IMG_SINGLE,
+        IMG_BLANK,
 };
 
 
@@ -59,6 +67,10 @@ const uint32_t* bg_image_particles[BG_IMAGE_COUNT] = {
         IMG_DISTTEST_PARTICLES,
         IMG_SQUARE8_PARTICLES,
         IMG_ZIGZAG_PARTICLES,
+        IMG_DUAL_PARTICLES,
+        IMG_LINRAINBOW_PARTICLES,
+        IMG_SINGLE_PARTICLES,
+        IMG_BLANK_PARTICLES,
 };
 
 const uint32_t bg_image_particlecount[BG_IMAGE_COUNT] = {
@@ -66,12 +78,26 @@ const uint32_t bg_image_particlecount[BG_IMAGE_COUNT] = {
         IMG_DISTTEST_PARTICLE_COUNT,
         IMG_SQUARE8_PARTICLE_COUNT,
         IMG_ZIGZAG_PARTICLE_COUNT,
+        IMG_DUAL_PARTICLE_COUNT,
+        IMG_LINRAINBOW_PARTICLE_COUNT,
+        IMG_SINGLE_PARTICLE_COUNT,
+        IMG_BLANK_PARTICLE_COUNT,
 };
+
+#define ANIMATION_COUNT 0
+
+
+#define MODE_COUNT (BG_IMAGE_COUNT+ANIMATION_COUNT)
+
+MPU6050 mpu;
+
+bool btn_select_pressed = false;
+bool btn_reset_pressed = false;
 
 int cur_bgimg = 0;
 
 Simulation sim(DISPLAY_SIZE, DISPLAY_SIZE,
-               MPU_SCALE, SIM_MAX_PARTICLECOUNT, SIM_ELASTICITY, false
+               MPU_SCALE, SIM_MAX_PARTICLECOUNT, SIM_ELASTICITY, true
                );
 
 int64_t alarm_callback(alarm_id_t id, void *user_data) {
@@ -119,10 +145,15 @@ int64_t alarm_callback(alarm_id_t id, void *user_data) {
     multicore_launch_core1(hub75_main);
     sleep_ms(100);  // Sleep a bit to allow for proper initialization of HUB75 driver main loop
 
-    // Uncomment to sleep a bit to wait for USB connection
-    //sleep_ms(3000);
+    // Initialize Simulation
+    sim.clearAll();
+    sim.loadBackground(bg_images[cur_bgimg]);
+    sim.loadParticles(bg_image_particles[cur_bgimg], bg_image_particlecount[cur_bgimg]);
 
     display_background = bg_images[cur_bgimg];
+
+    // Uncomment to sleep a bit to wait for USB connection
+    //sleep_ms(3000);
 
     uint32_t frame = 0;
     absolute_time_t frame_time = get_absolute_time();
@@ -131,18 +162,24 @@ int64_t alarm_callback(alarm_id_t id, void *user_data) {
     absolute_time_t last_warn = get_absolute_time();
     uint32_t warn_count = 0;
 
+    absolute_time_t btn_reset_last = get_absolute_time();
+    absolute_time_t btn_select_last = get_absolute_time();
+
     while (true) {
         // Check simulation reset button
         if (gpio_get(BTN_RESET_PIN) != btn_reset_pressed) {
-            if (gpio_get(BTN_RESET_PIN)) {
+            if (gpio_get(BTN_RESET_PIN) && time_reached(delayed_by_ms(btn_reset_last, BTN_DEBOUNCE_MS))) {
                 // Button up
+                btn_reset_last = get_absolute_time();
+
                 printf("Reset!\n");
 
                 sim.clearAll();
                 sim.loadBackground(bg_images[cur_bgimg]);
                 sim.loadParticles(bg_image_particles[cur_bgimg], bg_image_particlecount[cur_bgimg]);
             } else {
-                // Button down
+                // Pressed RESET while SELECT was pressed, reboot into bootsel mode
+                reset_usb_boot(0, 0);
             }
 
             btn_reset_pressed = gpio_get(BTN_RESET_PIN);
@@ -150,18 +187,18 @@ int64_t alarm_callback(alarm_id_t id, void *user_data) {
 
         // Check mode select button
         if (gpio_get(BTN_SELECT_PIN) != btn_select_pressed) {
-            if (gpio_get(BTN_SELECT_PIN)) {
+            if (gpio_get(BTN_SELECT_PIN) && time_reached(delayed_by_ms(btn_select_last, BTN_DEBOUNCE_MS))) {
                 // Button up
+                btn_select_last = get_absolute_time();
+
                 printf("Select!\n");
-                cur_bgimg = (cur_bgimg+1)%BG_IMAGE_COUNT;
+                cur_bgimg = (cur_bgimg+1)%MODE_COUNT;
 
                 sim.clearAll();
                 sim.loadBackground(bg_images[cur_bgimg]);
                 sim.loadParticles(bg_image_particles[cur_bgimg], bg_image_particlecount[cur_bgimg]);
 
                 printf("Selected background: %d\n", cur_bgimg);
-            } else {
-                // Button down
             }
 
             btn_select_pressed = gpio_get(BTN_SELECT_PIN);
@@ -200,7 +237,12 @@ int64_t alarm_callback(alarm_id_t id, void *user_data) {
 
             // Wait until previous timestep is done rendering
             // Usually only a few microseconds
-            multicore_fifo_pop_blocking();
+            uint32_t fifo_out=0;
+            if (!multicore_fifo_pop_timeout_us(FIFO_TIMEOUT, &fifo_out)) {
+                printf("ERROR: Timed out while waiting for HUB75 driver to finish redrawing!\n");
+                last_loop_rendered = false;
+                continue;  // Skip frame, because our outbound FIFO would fill up otherwise
+            }
 
             absolute_time_t t4 = get_absolute_time();
 

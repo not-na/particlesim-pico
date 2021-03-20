@@ -82,6 +82,8 @@ uint32_t* display_back_buf = &display_buffers[1][0];
 
 const uint32_t* display_background = nullptr;
 
+uint32_t display_wait = 0;
+
 uint32_t display_particlecount;
 particle_t display_particles[SIM_MAX_PARTICLECOUNT];
 
@@ -240,8 +242,13 @@ void hub75_init() {
             }
         }
 
+        //if (display_redraw) {
+        //    printf("REDRAW Carry\n");
+        //}
+
         // Ready to flip
         if (display_flip) {
+            //printf("Flip\n");
             display_flip = false;
 
             // Swap buffers
@@ -259,6 +266,10 @@ void hub75_init() {
                 panic("Tried to signal finished redraw, but FIFO was full!\n");
             }
             multicore_fifo_push_blocking(DISPLAY_TRIGGER_SIMULATION_MAGIC_NUMBER);
+        }
+
+        if (display_wait > 0) {
+            sleep_us(display_wait);
         }
 
     }
@@ -301,6 +312,8 @@ DISPLAY_REDRAWSTATE __not_in_flash_func(hub75_update)(DISPLAY_REDRAWSTATE state)
                 if (display_particlecount > 0) {
                     // Only proceed to draw particles if there are any
                     state = DISPLAY_REDRAWSTATE_PARTICLES;
+                } else {
+                    state = DISPLAY_REDRAWSTATE_IDLE;
                 }
                 display_redraw_curidx = 0;
             }

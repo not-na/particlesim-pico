@@ -44,6 +44,40 @@ inline bool Simulation::getPixel(uint32_t x, uint32_t y) const {
     return bitmap[y]&(0x80000000 >> x);
 }
 
+// Comparsion functions are from Adafruit_PixelDust, adjusted for different type names
+// Comparison functions for qsort().  Rather than using true position along
+// acceleration vector (which would be computationally expensive), an 8-way
+// approximation is 'good enough' and quick to compute.  A separate optimized
+// function is provided for each of the 8 directions.
+
+static int __not_in_flash_func(compare0)(const void *a, const void *b) {
+    return ((particle_t *)b)->x - ((particle_t *)a)->x;
+}
+static int __not_in_flash_func(compare1)(const void *a, const void *b) {
+    return ((particle_t *)b)->x + ((particle_t *)b)->y - ((particle_t *)a)->x - ((particle_t *)a)->y;
+}
+static int __not_in_flash_func(compare2)(const void *a, const void *b) {
+    return ((particle_t *)b)->y - ((particle_t *)a)->y;
+}
+static int __not_in_flash_func(compare3)(const void *a, const void *b) {
+    return ((particle_t *)a)->x - ((particle_t *)a)->y - ((particle_t *)b)->x + ((particle_t *)b)->y;
+}
+static int __not_in_flash_func(compare4)(const void *a, const void *b) {
+    return ((particle_t *)a)->x - ((particle_t *)b)->x;
+}
+static int __not_in_flash_func(compare5)(const void *a, const void *b) {
+    return ((particle_t *)a)->x + ((particle_t *)a)->y - ((particle_t *)b)->x - ((particle_t *)b)->y;
+}
+static int __not_in_flash_func(compare6)(const void *a, const void *b) {
+    return ((particle_t *)a)->y - ((particle_t *)b)->y;
+}
+static int __not_in_flash_func(compare7)(const void *a, const void *b) {
+    return ((particle_t *)b)->x - ((particle_t *)b)->y - ((particle_t *)a)->x + ((particle_t *)a)->y;
+}
+static int (*compare[8])(const void *a, const void *b) = {
+        compare0, compare1, compare2, compare3,
+        compare4, compare5, compare6, compare7};
+
 void __not_in_flash_func(Simulation::iterate)(int32_t ax, int32_t ay, int32_t az) {
     // Scale down accelerometer inputs
     // The inputs should be normalised already
@@ -58,8 +92,17 @@ void __not_in_flash_func(Simulation::iterate)(int32_t ax, int32_t ay, int32_t az
     int az2 = az*2+1;
 
     if (sort) {
-        // TODO: implement sorting
-        panic("Sort is currently not supported!\n");
+        // Sorting from Adafruit_PixelDust
+        int8_t q;
+        q = (int)(atan2(ay, ax) * 8.0 / M_PI); // -8 to +8
+        if (q >= 0)
+            q = (q + 1) / 2;
+        else
+            q = (q + 16) / 2;
+        if (q > 7)
+            q = 7;
+        // Sort particles by position, bottom-to-top
+        qsort(particles, particlecount, sizeof(particle_t), compare[q]);
     }
 
     int v2;  // Squared velocity
