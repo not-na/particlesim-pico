@@ -20,11 +20,12 @@ pico_sdk_init()
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(particlesim
-        particlesim.cpp
+        particlesim.cpp particlesim.h
         MPU6050.cpp MPU6050.h
         hub75.cpp hub75.h
         simulation.cpp simulation.h
-        )
+        animations_basic.cpp animations_basic.h
+        anim_helpers.cpp anim_helpers.h)
 
 pico_generate_pio_header(particlesim ${CMAKE_CURRENT_LIST_DIR}/hub75.pio)
 

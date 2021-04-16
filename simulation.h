@@ -6,6 +6,8 @@
 
 #define SIM_MAX_PARTICLECOUNT 512
 
+#define SIM_Z_NOISE_FACTOR 8
+
 // Bounce formula copied from Adafruit_PixelDust
 #define BOUNCE(n) n = ((-n) * elasticity / 256) ///< 1-axis elastic bounce
 
@@ -33,6 +35,8 @@ public:
 
     uint32_t particlecount;
     particle_t particles[SIM_MAX_PARTICLECOUNT];
+
+    bool rand;
 
 private:
     bool sort;

@@ -40,6 +40,12 @@
 // Amount of pixels per framebuffer
 #define DISPLAY_FRAMEBUFFER_SIZE (DISPLAY_SIZE*DISPLAY_SIZE)
 
+// Amount of time to blank the display after each full frame draw
+// 0 for full brightness, increase to dim
+// ~3000 for half-brightness
+// Note that very high values will cause FPS drops and may cause visible flicker
+#define DISPLAY_WAIT_US 0
+
 // An arbitrary 32-bit number to use for triggering redraws / simulations
 // We could just use the same number or even 0, but this can catch bugs if
 // other code also sends something over the FIFO

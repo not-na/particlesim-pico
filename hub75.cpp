@@ -82,7 +82,7 @@ uint32_t* display_back_buf = &display_buffers[1][0];
 
 const uint32_t* display_background = nullptr;
 
-uint32_t display_wait = 0;
+uint32_t display_wait = DISPLAY_WAIT_US;
 
 uint32_t display_particlecount;
 particle_t display_particles[SIM_MAX_PARTICLECOUNT];

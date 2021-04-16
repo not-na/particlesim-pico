@@ -1,14 +1,4 @@
-#include <stdio.h>
-#include <string.h>
-#include "pico/stdlib.h"
-#include "pico/binary_info.h"
-#include "pico/bootrom.h"
-#include "hardware/i2c.h"
-#include "hardware/dma.h"
-#include "hardware/pio.h"
-#include "hardware/interp.h"
-#include "hardware/timer.h"
-#include "hardware/gpio.h"
+#include "particlesim.h"
 
 #include "MPU6050.h"
 #include "hub75.h"
@@ -20,21 +10,13 @@
 #include "images/img_zigzag.h"
 #include "images/img_dual.h"
 #include "images/img_linrainbow.h"
+#include "images/img_maze.h"
 #include "images/img_single.h"
 #include "images/img_blank.h"
 
+#include "anim_helpers.h"
+#include "animations_basic.h"
 
-#define TPS 120
-#define FIFO_TIMEOUT (1000/TPS*1000*2)
-
-#define MPU_SCALE 40
-#define MPU_PRESCALE (48.0f)
-#define SIM_ELASTICITY 180
-
-#define BTN_SELECT_PIN 2
-#define BTN_RESET_PIN 3
-
-#define BTN_DEBOUNCE_MS 150
 
 /*
  * Background image format
@@ -48,7 +30,7 @@
  * A pixel is considered occupied if it is non-zero.
  * */
 
-#define BG_IMAGE_COUNT 8
+#define BG_IMAGE_COUNT 9
 
 const uint32_t* bg_images[BG_IMAGE_COUNT] = {
         IMG_RGBM,
@@ -57,6 +39,7 @@ const uint32_t* bg_images[BG_IMAGE_COUNT] = {
         IMG_ZIGZAG,
         IMG_DUAL,
         IMG_LINRAINBOW,
+        IMG_MAZE,
         IMG_SINGLE,
         IMG_BLANK,
 };
@@ -69,6 +52,7 @@ const uint32_t* bg_image_particles[BG_IMAGE_COUNT] = {
         IMG_ZIGZAG_PARTICLES,
         IMG_DUAL_PARTICLES,
         IMG_LINRAINBOW_PARTICLES,
+        IMG_MAZE_PARTICLES,
         IMG_SINGLE_PARTICLES,
         IMG_BLANK_PARTICLES,
 };
@@ -80,11 +64,13 @@ const uint32_t bg_image_particlecount[BG_IMAGE_COUNT] = {
         IMG_ZIGZAG_PARTICLE_COUNT,
         IMG_DUAL_PARTICLE_COUNT,
         IMG_LINRAINBOW_PARTICLE_COUNT,
+        IMG_MAZE_PARTICLE_COUNT,
         IMG_SINGLE_PARTICLE_COUNT,
         IMG_BLANK_PARTICLE_COUNT,
 };
 
-#define ANIMATION_COUNT 0
+// Number of available animations
+#define ANIMATION_COUNT 4
 
 
 #define MODE_COUNT (BG_IMAGE_COUNT+ANIMATION_COUNT)
@@ -100,12 +86,58 @@ Simulation sim(DISPLAY_SIZE, DISPLAY_SIZE,
                MPU_SCALE, SIM_MAX_PARTICLECOUNT, SIM_ELASTICITY, true
                );
 
-int64_t alarm_callback(alarm_id_t id, void *user_data) {
-    // Put your timeout handler code in here
-    return 0;
+uint32_t anim_framebuf[32*32];
+
+
+void start_anim(int id) {
+    // Called on every animation start or reset
+    switch (id) {
+        case BG_IMAGE_COUNT+0:
+            // Colorcycle Animation from animations_basic.h
+            anim_colorcycle_start();
+            break;
+        case BG_IMAGE_COUNT+1:
+            // Slow Colorcycle Animation from animations_basic.h
+            anim_colorcycleslow_start();
+            break;
+        case BG_IMAGE_COUNT+2:
+            // Ultraslow Colorcycle Animation from animations_basic.h
+            anim_colorcycleuslow_start();
+            break;
+        case BG_IMAGE_COUNT+3:
+            // Perlin Noise Animation from animations_basic.h
+            anim_perlinnoise_start();
+            break;
+        // Add new animations here
+        default:
+            panic("Invalid animation ID %d (BG_IMAGE_COUNT=%d) during initialize\n", id, BG_IMAGE_COUNT);
+    }
 }
 
-
+void draw_anim(int id, uint32_t frame) {
+    // Called every animation frame, usually TPS times a second
+    switch (id) {
+        case BG_IMAGE_COUNT+0:
+            // Colorcycle Animation from animations_basic.h
+            anim_colorcycle_draw();
+            break;
+        case BG_IMAGE_COUNT+1:
+            // Slow Colorcycle Animation from animations_basic.h
+            anim_colorcycleslow_draw();
+            break;
+        case BG_IMAGE_COUNT+2:
+            // Ultraslow Colorcycle Animation from animations_basic.h
+            anim_colorcycleuslow_draw();
+            break;
+        case BG_IMAGE_COUNT+3:
+            // Perlin Noise from animations_basic.h
+            anim_perlinnoise_draw();
+            break;
+        // Add new animations here
+        default:
+            panic("Invalid animation ID %d (BG_IMAGE_COUNT=%d) during render\n", id, BG_IMAGE_COUNT);
+    }
+}
 
 [[noreturn]] int main()
 {
@@ -174,10 +206,14 @@ int64_t alarm_callback(alarm_id_t id, void *user_data) {
 
                 printf("Reset!\n");
 
-                sim.clearAll();
-                sim.loadBackground(bg_images[cur_bgimg]);
-                sim.loadParticles(bg_image_particles[cur_bgimg], bg_image_particlecount[cur_bgimg]);
-            } else {
+                if (cur_bgimg<BG_IMAGE_COUNT) {
+                    sim.clearAll();
+                    sim.loadBackground(bg_images[cur_bgimg]);
+                    sim.loadParticles(bg_image_particles[cur_bgimg], bg_image_particlecount[cur_bgimg]);
+                } else {
+                    start_anim(cur_bgimg);
+                }
+            } else if (!gpio_get(BTN_SELECT_PIN)){
                 // Pressed RESET while SELECT was pressed, reboot into bootsel mode
                 reset_usb_boot(0, 0);
             }
@@ -194,9 +230,13 @@ int64_t alarm_callback(alarm_id_t id, void *user_data) {
                 printf("Select!\n");
                 cur_bgimg = (cur_bgimg+1)%MODE_COUNT;
 
-                sim.clearAll();
-                sim.loadBackground(bg_images[cur_bgimg]);
-                sim.loadParticles(bg_image_particles[cur_bgimg], bg_image_particlecount[cur_bgimg]);
+                if (cur_bgimg<BG_IMAGE_COUNT) {
+                    sim.clearAll();
+                    sim.loadBackground(bg_images[cur_bgimg]);
+                    sim.loadParticles(bg_image_particles[cur_bgimg], bg_image_particlecount[cur_bgimg]);
+                } else {
+                    start_anim(cur_bgimg);
+                }
 
                 printf("Selected background: %d\n", cur_bgimg);
             }
@@ -214,61 +254,97 @@ int64_t alarm_callback(alarm_id_t id, void *user_data) {
                 warn_count++;
                 if (time_reached(delayed_by_ms(last_warn, 1000))) {
                     printf("WARNING: CPU Usage near 100%%, count=%lu\n", warn_count);
+                    last_warn = get_absolute_time();
                 }
             }
 
-            // Update MPU6050, results are available as attributes
-            mpu.update();
+            if (cur_bgimg < BG_IMAGE_COUNT) {
+                // Process / Render simulation
+
+                // Update MPU6050, results are available as attributes
+                // TODO: improve performance of MPU update, since it is currently quite slow
+                mpu.update();
+
+                if (frame % (TPS / 2) == 0) {
+                    printf("Accel: X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.ax, mpu.ay, mpu.az);
+                    printf("Norm:  X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.axn, mpu.ayn, mpu.azn);
+                    printf("Gyro:  X = % 3.6f, Y = % 3.6f, Z = % 3.6f\n", mpu.gx, mpu.gy, mpu.gz);
+
+                    printf("Temp:  % 2.8f\n", mpu.temp);
+                }
+
+                absolute_time_t t2 = get_absolute_time();
+
+                // Step the simulation
+                sim.iterate((int) (mpu.ayn * MPU_PRESCALE), (int) (mpu.axn * MPU_PRESCALE),
+                            (int) (mpu.azn * MPU_PRESCALE));
+
+                absolute_time_t t3 = get_absolute_time();
+
+                // Wait until previous timestep is done rendering
+                // Usually only a few microseconds
+                uint32_t fifo_out = 0;
+                if (!multicore_fifo_pop_timeout_us(FIFO_TIMEOUT, &fifo_out)) {
+                    printf("ERROR: Timed out while waiting for HUB75 driver to finish redrawing!\n");
+                    last_loop_rendered = false;
+                    continue;  // Skip frame, because our outbound FIFO would fill up otherwise
+                }
+
+                absolute_time_t t4 = get_absolute_time();
+
+                // Copy over particle data
+                // memcpy should use pico-optimized variant and be relatively fast
+                memcpy(&display_particles, &sim.particles, sizeof(particle_t) * sim.particlecount);
+                display_particlecount = sim.particlecount;
+
+                // Update background reference and trigger redraw by signalling other core
+                display_background = bg_images[cur_bgimg];
+                multicore_fifo_push_blocking(DISPLAY_TRIGGER_REDRAW_MAGIC_NUMBER);
+
+                frame++;
+                last_loop_rendered = true;
+
+                absolute_time_t t5 = get_absolute_time();
+
+                // Performance measurements
+                if (frame % (TPS / 10) == 0) {
+                    printf("MPU=%lldus SIM=%lldus FIFO=%lldus COPY=%lldus\n",
+                           absolute_time_diff_us(frame_time, t2),
+                           absolute_time_diff_us(t2, t3),
+                           absolute_time_diff_us(t3, t4),
+                           absolute_time_diff_us(t4, t5)
+                    );
+                }
+
+            } else {
+                // Wait until previous frame is done rendering
+                // Usually only a few microseconds, but may be more since
+                // animations render quite fast and we don't have to wait for the MPU
+                uint32_t fifo_out = 0;
+                if (!multicore_fifo_pop_timeout_us(FIFO_TIMEOUT, &fifo_out)) {
+                    printf("ERROR: Timed out while waiting for HUB75 driver to finish redrawing!\n");
+                    last_loop_rendered = false;
+                    continue;  // Skip frame, because our outbound FIFO would fill up otherwise
+                }
+
+                // Configure HUB75 driver to draw from framebuffer
+                display_background = anim_framebuf;
+                display_particlecount = 0;  // Animations could override this, but must do so every frame
+
+                // Render animation
+                draw_anim(cur_bgimg, frame);
+
+                // Signal other core that we are done
+                multicore_fifo_push_blocking(DISPLAY_TRIGGER_REDRAW_MAGIC_NUMBER);
+
+                frame++;
+                last_loop_rendered = true;
+            }
+
+            absolute_time_t et = get_absolute_time();
 
             if (frame % (TPS/2) == 0) {
-                printf("Accel: X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.ax, mpu.ay, mpu.az);
-                printf("Norm:  X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.axn, mpu.ayn, mpu.azn);
-                printf("Gyro:  X = % 3.6f, Y = % 3.6f, Z = % 3.6f\n", mpu.gx, mpu.gy, mpu.gz);
-
-                printf("Temp:  % 2.8f\n", mpu.temp);
-            }
-
-            absolute_time_t t2 = get_absolute_time();
-
-            // Step the simulation
-            sim.iterate((int) (mpu.axn * MPU_PRESCALE), (int) (mpu.ayn * MPU_PRESCALE), (int) (mpu.azn * MPU_PRESCALE));
-
-            absolute_time_t t3 = get_absolute_time();
-
-            // Wait until previous timestep is done rendering
-            // Usually only a few microseconds
-            uint32_t fifo_out=0;
-            if (!multicore_fifo_pop_timeout_us(FIFO_TIMEOUT, &fifo_out)) {
-                printf("ERROR: Timed out while waiting for HUB75 driver to finish redrawing!\n");
-                last_loop_rendered = false;
-                continue;  // Skip frame, because our outbound FIFO would fill up otherwise
-            }
-
-            absolute_time_t t4 = get_absolute_time();
-
-            // Copy over particle data
-            // memcpy should use pico-optimized variant and be relatively fast
-            memcpy(&display_particles, &sim.particles, sizeof(particle_t)*sim.particlecount);
-            display_particlecount = sim.particlecount;
-
-            // Update background reference and trigger redraw by signalling other core
-            display_background = bg_images[cur_bgimg];
-            multicore_fifo_push_blocking(DISPLAY_TRIGGER_REDRAW_MAGIC_NUMBER);
-
-            frame++;
-            last_loop_rendered = true;
-
-            absolute_time_t t5 = get_absolute_time();
-
-            // Performance measurements
-            if (frame%(TPS/10)==0) {
-                printf("MPU=%lldus SIM=%lldus FIFO=%lldus COPY=%lldus\n",
-                       absolute_time_diff_us(frame_time, t2),
-                       absolute_time_diff_us(t2, t3),
-                       absolute_time_diff_us(t3, t4),
-                       absolute_time_diff_us(t4, t5)
-                );
-                printf("Frametime=%lldus\n", absolute_time_diff_us(frame_time, t5));
+                printf("Frametime=%lldus\n", absolute_time_diff_us(frame_time, et));
             }
         } else {
             last_loop_rendered = false;

@@ -2,7 +2,7 @@
 
 Simulation::Simulation(uint32_t w, uint32_t h, uint8_t scale, uint32_t count, uint8_t e, bool sort)
     : width(w), height(h), w32((w+31)/32), xMax(w*256-1), yMax(h*256-1), particlecount(count),
-    scale(scale), elasticity(e), sort(sort), particles{0}, bitmap{0}
+    scale(scale), elasticity(e), sort(sort), rand(true), particles{0}, bitmap{0}
     {}
 
 void Simulation::loadBackground(const uint32_t *bg) {
@@ -83,13 +83,17 @@ void __not_in_flash_func(Simulation::iterate)(int32_t ax, int32_t ay, int32_t az
     // The inputs should be normalised already
     ax = ax*scale / 256;
     ay = ay*scale / 256;
-    az = abs(az*scale / 2048);  // Used for random motion to topple stacks
 
-    az = (az>=4) ? 1: 5-az;  // Limit and invert
-    // Subtract z motion factor, will be added back later with randomness
-    ax -= az;
-    ay -= az;
-    int az2 = az*2+1;
+    int az2;
+    if (rand) {
+        az = abs(az*scale / (256*SIM_Z_NOISE_FACTOR));  // Used for random motion to topple stacks
+
+        az = (az >= (SIM_Z_NOISE_FACTOR / 2)) ? 1 : (SIM_Z_NOISE_FACTOR / 2 + 1) - az;  // Limit and invert
+        // Subtract z motion factor, will be added back later with randomness
+        ax -= az;
+        ay -= az;
+        az2 = az * 2 + 1;
+    }
 
     if (sort) {
         // Sorting from Adafruit_PixelDust
@@ -109,8 +113,13 @@ void __not_in_flash_func(Simulation::iterate)(int32_t ax, int32_t ay, int32_t az
     float v; // Velocity
     for (int i = 0; i < particlecount; ++i) {
         // Apply acceleration
-        particles[i].vx += ax + random()%az2;
-        particles[i].vy += ay + random()%az2;
+        if (rand) {
+            particles[i].vx += ax + random() % az2;
+            particles[i].vy += ay + random() % az2;
+        } else {
+            particles[i].vx += ax;
+            particles[i].vy += ay;
+        }
 
         // Limit total velocity to 256 to prevent particles from clipping through
         // each other
