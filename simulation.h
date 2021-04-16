@@ -38,10 +38,11 @@ public:
 
     bool rand;
 
+    uint8_t scale, elasticity;
+
 private:
     bool sort;
     uint32_t width, height, w32;
     uint32_t xMax, yMax;
-    uint8_t scale, elasticity;
     uint32_t bitmap[32];
 };

@@ -30,57 +30,106 @@
  * A pixel is considered occupied if it is non-zero.
  * */
 
-#define BG_IMAGE_COUNT 9
+#define STAGE_COUNT 10
 
-const uint32_t* bg_images[BG_IMAGE_COUNT] = {
-        IMG_RGBM,
-        IMG_DISTTEST,
-        IMG_SQUARE8,
-        IMG_ZIGZAG,
-        IMG_DUAL,
-        IMG_LINRAINBOW,
-        IMG_MAZE,
-        IMG_SINGLE,
-        IMG_BLANK,
+const stage_t STAGE_RGBM = {
+        STAGE_HEAD(RGBM),
+        .scale = MPU_SCALE,
+        .elasticity = SIM_ELASTICITY,
+        .rand = true,
 };
 
-
-const uint32_t* bg_image_particles[BG_IMAGE_COUNT] = {
-        IMG_RGBM_PARTICLES,
-        IMG_DISTTEST_PARTICLES,
-        IMG_SQUARE8_PARTICLES,
-        IMG_ZIGZAG_PARTICLES,
-        IMG_DUAL_PARTICLES,
-        IMG_LINRAINBOW_PARTICLES,
-        IMG_MAZE_PARTICLES,
-        IMG_SINGLE_PARTICLES,
-        IMG_BLANK_PARTICLES,
+const stage_t STAGE_DISTTEST = {
+        STAGE_HEAD(DISTTEST),
+        .scale = MPU_SCALE,
+        .elasticity = 100,
+        .rand = true,
 };
 
-const uint32_t bg_image_particlecount[BG_IMAGE_COUNT] = {
-        IMG_RGBM_PARTICLE_COUNT,
-        IMG_DISTTEST_PARTICLE_COUNT,
-        IMG_SQUARE8_PARTICLE_COUNT,
-        IMG_ZIGZAG_PARTICLE_COUNT,
-        IMG_DUAL_PARTICLE_COUNT,
-        IMG_LINRAINBOW_PARTICLE_COUNT,
-        IMG_MAZE_PARTICLE_COUNT,
-        IMG_SINGLE_PARTICLE_COUNT,
-        IMG_BLANK_PARTICLE_COUNT,
+const stage_t STAGE_SQUARE8 = {
+        STAGE_HEAD(SQUARE8),
+        .scale = MPU_SCALE,
+        .elasticity = SIM_ELASTICITY,
+        .rand = true,
+};
+
+const stage_t STAGE_ZIGZAG = {
+        STAGE_HEAD(ZIGZAG),
+        .scale = MPU_SCALE,
+        .elasticity = SIM_ELASTICITY,
+        .rand = true,
+};
+
+const stage_t STAGE_DUAL = {
+        STAGE_HEAD(DUAL),
+        .scale = MPU_SCALE,
+        .elasticity = SIM_ELASTICITY,
+        .rand = true,
+};
+
+const stage_t STAGE_LINRAINBOW = {
+        STAGE_HEAD(LINRAINBOW),
+        .scale = MPU_SCALE,
+        .elasticity = SIM_ELASTICITY,
+        .rand = true,
+};
+
+const stage_t STAGE_MAZE = {
+        STAGE_HEAD(MAZE),
+        .scale = MPU_SCALE,
+        .elasticity = 70,
+        .rand = false,
+};
+
+const stage_t STAGE_SINGLE = {
+        STAGE_HEAD(SINGLE),
+        .scale = MPU_SCALE,
+        .elasticity = SIM_ELASTICITY,
+        .rand = false,
+};
+
+const stage_t STAGE_SINGLEBOUNCY = {
+        STAGE_HEAD(SINGLE),
+        .scale = MPU_SCALE,
+        .elasticity = 255,
+        .rand = false,
+};
+
+const stage_t STAGE_BLANK = {
+        STAGE_HEAD(BLANK),
+        .scale = MPU_SCALE,
+        .elasticity = SIM_ELASTICITY,
+        .rand = true,
+};
+
+// Add new stage definitions here
+
+// List of stages in the order they are presented to the user
+const stage_t stages[STAGE_COUNT] = {
+        STAGE_RGBM,
+        STAGE_DISTTEST,
+        STAGE_ZIGZAG,
+        STAGE_DUAL,
+        STAGE_LINRAINBOW,
+        STAGE_MAZE,
+        STAGE_SINGLE,
+        STAGE_SQUARE8,
+        STAGE_SINGLEBOUNCY,
+        STAGE_BLANK,
+        // Add new stages to the list here
 };
 
 // Number of available animations
 #define ANIMATION_COUNT 4
 
-
-#define MODE_COUNT (BG_IMAGE_COUNT+ANIMATION_COUNT)
+#define MODE_COUNT (STAGE_COUNT+ANIMATION_COUNT)
 
 MPU6050 mpu;
 
 bool btn_select_pressed = false;
 bool btn_reset_pressed = false;
 
-int cur_bgimg = 0;
+int cur_stage = 0;
 
 Simulation sim(DISPLAY_SIZE, DISPLAY_SIZE,
                MPU_SCALE, SIM_MAX_PARTICLECOUNT, SIM_ELASTICITY, true
@@ -92,50 +141,50 @@ uint32_t anim_framebuf[32*32];
 void start_anim(int id) {
     // Called on every animation start or reset
     switch (id) {
-        case BG_IMAGE_COUNT+0:
+        case 0:
             // Colorcycle Animation from animations_basic.h
             anim_colorcycle_start();
             break;
-        case BG_IMAGE_COUNT+1:
+        case 1:
             // Slow Colorcycle Animation from animations_basic.h
             anim_colorcycleslow_start();
             break;
-        case BG_IMAGE_COUNT+2:
+        case 2:
             // Ultraslow Colorcycle Animation from animations_basic.h
             anim_colorcycleuslow_start();
             break;
-        case BG_IMAGE_COUNT+3:
+        case 3:
             // Perlin Noise Animation from animations_basic.h
             anim_perlinnoise_start();
             break;
         // Add new animations here
         default:
-            panic("Invalid animation ID %d (BG_IMAGE_COUNT=%d) during initialize\n", id, BG_IMAGE_COUNT);
+            panic("Invalid animation ID %d during initialize\n", id);
     }
 }
 
 void draw_anim(int id, uint32_t frame) {
     // Called every animation frame, usually TPS times a second
     switch (id) {
-        case BG_IMAGE_COUNT+0:
+        case 0:
             // Colorcycle Animation from animations_basic.h
             anim_colorcycle_draw();
             break;
-        case BG_IMAGE_COUNT+1:
+        case 1:
             // Slow Colorcycle Animation from animations_basic.h
             anim_colorcycleslow_draw();
             break;
-        case BG_IMAGE_COUNT+2:
+        case 2:
             // Ultraslow Colorcycle Animation from animations_basic.h
             anim_colorcycleuslow_draw();
             break;
-        case BG_IMAGE_COUNT+3:
+        case 3:
             // Perlin Noise from animations_basic.h
             anim_perlinnoise_draw();
             break;
         // Add new animations here
         default:
-            panic("Invalid animation ID %d (BG_IMAGE_COUNT=%d) during render\n", id, BG_IMAGE_COUNT);
+            panic("Invalid animation ID %d during render\n", id);
     }
 }
 
@@ -179,10 +228,10 @@ void draw_anim(int id, uint32_t frame) {
 
     // Initialize Simulation
     sim.clearAll();
-    sim.loadBackground(bg_images[cur_bgimg]);
-    sim.loadParticles(bg_image_particles[cur_bgimg], bg_image_particlecount[cur_bgimg]);
+    sim.loadBackground(stages[cur_stage].bg);
+    sim.loadParticles(stages[cur_stage].particles, stages[cur_stage].particlecount);
 
-    display_background = bg_images[cur_bgimg];
+    display_background = stages[cur_stage].bg;
 
     // Uncomment to sleep a bit to wait for USB connection
     //sleep_ms(3000);
@@ -206,12 +255,12 @@ void draw_anim(int id, uint32_t frame) {
 
                 printf("Reset!\n");
 
-                if (cur_bgimg<BG_IMAGE_COUNT) {
+                if (cur_stage < STAGE_COUNT) {
                     sim.clearAll();
-                    sim.loadBackground(bg_images[cur_bgimg]);
-                    sim.loadParticles(bg_image_particles[cur_bgimg], bg_image_particlecount[cur_bgimg]);
+                    sim.loadBackground(stages[cur_stage].bg);
+                    sim.loadParticles(stages[cur_stage].particles, stages[cur_stage].particlecount);
                 } else {
-                    start_anim(cur_bgimg);
+                    start_anim(cur_stage-STAGE_COUNT);
                 }
             } else if (!gpio_get(BTN_SELECT_PIN)){
                 // Pressed RESET while SELECT was pressed, reboot into bootsel mode
@@ -228,17 +277,17 @@ void draw_anim(int id, uint32_t frame) {
                 btn_select_last = get_absolute_time();
 
                 printf("Select!\n");
-                cur_bgimg = (cur_bgimg+1)%MODE_COUNT;
+                cur_stage = (cur_stage + 1) % MODE_COUNT;
 
-                if (cur_bgimg<BG_IMAGE_COUNT) {
+                if (cur_stage < STAGE_COUNT) {
                     sim.clearAll();
-                    sim.loadBackground(bg_images[cur_bgimg]);
-                    sim.loadParticles(bg_image_particles[cur_bgimg], bg_image_particlecount[cur_bgimg]);
+                    sim.loadBackground(stages[cur_stage].bg);
+                    sim.loadParticles(stages[cur_stage].particles, stages[cur_stage].particlecount);
                 } else {
-                    start_anim(cur_bgimg);
+                    start_anim(cur_stage-STAGE_COUNT);
                 }
 
-                printf("Selected background: %d\n", cur_bgimg);
+                printf("Selected background: %d\n", cur_stage);
             }
 
             btn_select_pressed = gpio_get(BTN_SELECT_PIN);
@@ -258,14 +307,14 @@ void draw_anim(int id, uint32_t frame) {
                 }
             }
 
-            if (cur_bgimg < BG_IMAGE_COUNT) {
+            if (cur_stage < STAGE_COUNT) {
                 // Process / Render simulation
 
                 // Update MPU6050, results are available as attributes
                 // TODO: improve performance of MPU update, since it is currently quite slow
                 mpu.update();
 
-                if (frame % (TPS / 2) == 0) {
+                if (frame % (TPS / 1) == 0) {
                     printf("Accel: X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.ax, mpu.ay, mpu.az);
                     printf("Norm:  X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.axn, mpu.ayn, mpu.azn);
                     printf("Gyro:  X = % 3.6f, Y = % 3.6f, Z = % 3.6f\n", mpu.gx, mpu.gy, mpu.gz);
@@ -274,6 +323,11 @@ void draw_anim(int id, uint32_t frame) {
                 }
 
                 absolute_time_t t2 = get_absolute_time();
+
+                // Copy parameters from config struct
+                sim.scale = stages[cur_stage].scale;
+                sim.elasticity = stages[cur_stage].elasticity;
+                sim.rand = stages[cur_stage].rand;
 
                 // Step the simulation
                 sim.iterate((int) (mpu.ayn * MPU_PRESCALE), (int) (mpu.axn * MPU_PRESCALE),
@@ -298,7 +352,7 @@ void draw_anim(int id, uint32_t frame) {
                 display_particlecount = sim.particlecount;
 
                 // Update background reference and trigger redraw by signalling other core
-                display_background = bg_images[cur_bgimg];
+                display_background = stages[cur_stage].bg;
                 multicore_fifo_push_blocking(DISPLAY_TRIGGER_REDRAW_MAGIC_NUMBER);
 
                 frame++;
@@ -307,7 +361,7 @@ void draw_anim(int id, uint32_t frame) {
                 absolute_time_t t5 = get_absolute_time();
 
                 // Performance measurements
-                if (frame % (TPS / 10) == 0) {
+                if (frame % (TPS / 1) == 0) {
                     printf("MPU=%lldus SIM=%lldus FIFO=%lldus COPY=%lldus\n",
                            absolute_time_diff_us(frame_time, t2),
                            absolute_time_diff_us(t2, t3),
@@ -332,7 +386,7 @@ void draw_anim(int id, uint32_t frame) {
                 display_particlecount = 0;  // Animations could override this, but must do so every frame
 
                 // Render animation
-                draw_anim(cur_bgimg, frame);
+                draw_anim(cur_stage-STAGE_COUNT, frame);
 
                 // Signal other core that we are done
                 multicore_fifo_push_blocking(DISPLAY_TRIGGER_REDRAW_MAGIC_NUMBER);
@@ -343,7 +397,7 @@ void draw_anim(int id, uint32_t frame) {
 
             absolute_time_t et = get_absolute_time();
 
-            if (frame % (TPS/2) == 0) {
+            if (frame % (TPS/1) == 0) {
                 printf("Frametime=%lldus\n", absolute_time_diff_us(frame_time, et));
             }
         } else {

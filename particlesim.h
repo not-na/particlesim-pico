@@ -33,3 +33,13 @@
 #define DISPLAY_HEIGHT 32
 
 extern uint32_t anim_framebuf[DISPLAY_HEIGHT*DISPLAY_WIDTH];
+
+typedef struct stage {
+    const uint32_t* bg;
+    const uint32_t* particles;
+    const uint32_t particlecount;
+    const uint8_t scale, elasticity;
+    const bool rand;
+} stage_t;
+
+#define STAGE_HEAD(NAME) .bg=IMG_ ## NAME, .particles=IMG_ ## NAME ## _PARTICLES, .particlecount=IMG_ ## NAME ## _PARTICLE_COUNT
