@@ -25,7 +25,8 @@ add_executable(particlesim
         hub75.cpp hub75.h
         simulation.cpp simulation.h
         animations_basic.cpp animations_basic.h
-        anim_helpers.cpp anim_helpers.h)
+        anim_helpers.cpp anim_helpers.h
+        snake.cpp snake.h)
 
 pico_generate_pio_header(particlesim ${CMAKE_CURRENT_LIST_DIR}/hub75.pio)
 

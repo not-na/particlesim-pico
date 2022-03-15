@@ -4,7 +4,7 @@ void gl_fillscreen(uint32_t color) {
     gl_fillrect(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, color);
 }
 
-void gl_fillrect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color) {
+void __not_in_flash_func(gl_fillrect)(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color) {
     for (int yc = y; yc < y + h; ++yc) {
         for (int xc = x; xc < x + w; ++xc) {
             gl_pixel(xc, yc, color);
@@ -12,7 +12,7 @@ void gl_fillrect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color)
     }
 }
 
-inline void gl_pixel(uint32_t x, uint32_t y, uint32_t color) {
+void __not_in_flash_func(gl_pixel)(uint32_t x, uint32_t y, uint32_t color) {
     anim_framebuf[x+y*DISPLAY_WIDTH] = color;
 }
 

@@ -15,7 +15,7 @@ void gl_fillscreen(uint32_t color);
 
 void gl_fillrect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color);
 
-inline void gl_pixel(uint32_t x, uint32_t y, uint32_t color);
+void gl_pixel(uint32_t x, uint32_t y, uint32_t color);
 
 // TODO: add functions for lines, circles etc.
 

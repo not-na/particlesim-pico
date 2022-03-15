@@ -16,6 +16,7 @@
 
 #include "anim_helpers.h"
 #include "animations_basic.h"
+#include "snake.h"
 
 
 /*
@@ -120,7 +121,7 @@ const stage_t stages[STAGE_COUNT] = {
 };
 
 // Number of available animations
-#define ANIMATION_COUNT 4
+#define ANIMATION_COUNT 10
 
 #define MODE_COUNT (STAGE_COUNT+ANIMATION_COUNT)
 
@@ -135,8 +136,34 @@ Simulation sim(DISPLAY_SIZE, DISPLAY_SIZE,
                MPU_SCALE, SIM_MAX_PARTICLECOUNT, SIM_ELASTICITY, true
                );
 
+Snake snake;
+
 uint32_t anim_framebuf[32*32];
 
+
+void snake_draw(uint32_t frame) {
+    // Snake, both modes
+    mpu.update();
+
+    if (frame % (TPS / 1) == 0) {
+        printf("Accel: X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.ax, mpu.ay, mpu.az);
+        printf("Norm:  X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.axn, mpu.ayn, mpu.azn);
+        printf("Gyro:  X = % 3.6f, Y = % 3.6f, Z = % 3.6f\n", mpu.gx, mpu.gy, mpu.gz);
+
+        printf("Temp:  % 2.8f\n", mpu.temp);
+    }
+    absolute_time_t ts = get_absolute_time();
+    int ticked = snake.tick(mpu.ayn, mpu.axn, mpu.azn);  // X and Y swapped
+
+    absolute_time_t te = get_absolute_time();
+
+    snake.draw();
+
+    absolute_time_t et = get_absolute_time();
+    if (ticked == 1) {
+        printf("Snake: tick=%lldus draw=%lldus\n", absolute_time_diff_us(ts, te), absolute_time_diff_us(te, et));
+    }
+}
 
 void start_anim(int id) {
     // Called on every animation start or reset
@@ -156,6 +183,42 @@ void start_anim(int id) {
         case 3:
             // Perlin Noise Animation from animations_basic.h
             anim_perlinnoise_start();
+            break;
+        case 4:
+            // Snake, classic mode, 3 updates per second
+            snake.set_wall_collision(true);
+            snake.set_tickdiv(40);
+            snake.init();
+            break;
+        case 5:
+            // Snake, classic mode, 4 updates per second
+            snake.set_wall_collision(true);
+            snake.set_tickdiv(30);
+            snake.init();
+            break;
+        case 6:
+            // Snake, classic mode, 5 updates per second
+            snake.set_wall_collision(true);
+            snake.set_tickdiv(24);
+            snake.init();
+            break;
+        case 7:
+            // Snake, no wall collisions, 3 updates per second
+            snake.set_wall_collision(false);
+            snake.set_tickdiv(40);
+            snake.init();
+            break;
+        case 8:
+            // Snake, no wall collisions, 4 updates per second
+            snake.set_wall_collision(false);
+            snake.set_tickdiv(30);
+            snake.init();
+            break;
+        case 9:
+            // Snake, no wall collisions, 5 updates per second
+            snake.set_wall_collision(false);
+            snake.set_tickdiv(24);
+            snake.init();
             break;
         // Add new animations here
         default:
@@ -182,13 +245,21 @@ void draw_anim(int id, uint32_t frame) {
             // Perlin Noise from animations_basic.h
             anim_perlinnoise_draw();
             break;
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+            snake_draw(frame);
+            break;
         // Add new animations here
         default:
             panic("Invalid animation ID %d during render\n", id);
     }
 }
 
-[[noreturn]] int main()
+int main()
 {
     stdio_init_all();
 
@@ -287,7 +358,10 @@ void draw_anim(int id, uint32_t frame) {
                     start_anim(cur_stage-STAGE_COUNT);
                 }
 
-                printf("Selected background: %d\n", cur_stage);
+                printf("Selected stage with id %d\n", cur_stage);
+                if (cur_stage >= STAGE_COUNT) {
+                    printf("Animation id=%d\n", cur_stage-STAGE_COUNT);
+                }
             }
 
             btn_select_pressed = gpio_get(BTN_SELECT_PIN);
@@ -398,7 +472,8 @@ void draw_anim(int id, uint32_t frame) {
             absolute_time_t et = get_absolute_time();
 
             if (frame % (TPS/1) == 0) {
-                printf("Frametime=%lldus\n", absolute_time_diff_us(frame_time, et));
+                time_t ft = absolute_time_diff_us(frame_time, et);
+                printf("Frametime=%lldus (max=%dus) cpu=%.3f%%\n", ft, 1000000/TPS,  ((int32_t)ft)/(1000000.0/TPS)*100);
             }
         } else {
             last_loop_rendered = false;
