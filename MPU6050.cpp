@@ -24,7 +24,7 @@ void MPU6050::reset() {
     this->gy = 0;
     this->gz = 0;
 
-    this->temp = 0;
+    this->temp = NAN;
 
     // Exit sleep mode
     write_reg8(0x6B, 0x00);
@@ -92,7 +92,12 @@ void MPU6050::updateTemperature() {
     int16_t traw = read_reg16(0x41);
 
     // Calculation based on Pico SDK example
-    this->temp = (traw / 340.0) + 36.53;
+    double temp_measured = (traw / 340.0) + 36.53;
+    if (isnan(temp)) {
+        temp = temp_measured;
+    } else {
+        temp = (temp * MPU6050_TEMP_SMOOTH) + (temp_measured * (1 - MPU6050_TEMP_SMOOTH));
+    }
 }
 
 

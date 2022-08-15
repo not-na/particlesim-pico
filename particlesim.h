@@ -27,7 +27,7 @@
 // Debounce has to be quite aggressive, since relatively cheap and physically
 // large buttons are used
 // It would be better to use hardware debouncing with an RC-Filter
-#define BTN_DEBOUNCE_MS 150
+#define BTN_DEBOUNCE_MS 250
 
 #define DISPLAY_WIDTH 32
 #define DISPLAY_HEIGHT 32
@@ -41,5 +41,10 @@ typedef struct stage {
     const uint8_t scale, elasticity;
     const bool rand;
 } stage_t;
+
+typedef struct universe {
+    const uint8_t* cells;
+    const float prob;
+} universe_t;
 
 #define STAGE_HEAD(NAME) .bg=IMG_ ## NAME, .particles=IMG_ ## NAME ## _PARTICLES, .particlecount=IMG_ ## NAME ## _PARTICLE_COUNT

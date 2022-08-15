@@ -4,19 +4,15 @@
 #include "hub75.h"
 #include "simulation.h"
 
-#include "images/img_rgbm.h"
-#include "images/img_disttest.h"
-#include "images/img_square8.h"
-#include "images/img_zigzag.h"
-#include "images/img_dual.h"
-#include "images/img_linrainbow.h"
-#include "images/img_maze.h"
-#include "images/img_single.h"
-#include "images/img_blank.h"
+#include "images/img_all.h"
+#include "gol/gol_all.h"
 
 #include "anim_helpers.h"
 #include "animations_basic.h"
+
 #include "snake.h"
+#include "GameOfLife.h"
+
 
 
 /*
@@ -31,99 +27,27 @@
  * A pixel is considered occupied if it is non-zero.
  * */
 
-#define STAGE_COUNT 10
+#include "stages.cpp"
 
-const stage_t STAGE_RGBM = {
-        STAGE_HEAD(RGBM),
-        .scale = MPU_SCALE,
-        .elasticity = SIM_ELASTICITY,
-        .rand = true,
-};
-
-const stage_t STAGE_DISTTEST = {
-        STAGE_HEAD(DISTTEST),
-        .scale = MPU_SCALE,
-        .elasticity = 100,
-        .rand = true,
-};
-
-const stage_t STAGE_SQUARE8 = {
-        STAGE_HEAD(SQUARE8),
-        .scale = MPU_SCALE,
-        .elasticity = SIM_ELASTICITY,
-        .rand = true,
-};
-
-const stage_t STAGE_ZIGZAG = {
-        STAGE_HEAD(ZIGZAG),
-        .scale = MPU_SCALE,
-        .elasticity = SIM_ELASTICITY,
-        .rand = true,
-};
-
-const stage_t STAGE_DUAL = {
-        STAGE_HEAD(DUAL),
-        .scale = MPU_SCALE,
-        .elasticity = SIM_ELASTICITY,
-        .rand = true,
-};
-
-const stage_t STAGE_LINRAINBOW = {
-        STAGE_HEAD(LINRAINBOW),
-        .scale = MPU_SCALE,
-        .elasticity = SIM_ELASTICITY,
-        .rand = true,
-};
-
-const stage_t STAGE_MAZE = {
-        STAGE_HEAD(MAZE),
-        .scale = MPU_SCALE,
-        .elasticity = 70,
-        .rand = false,
-};
-
-const stage_t STAGE_SINGLE = {
-        STAGE_HEAD(SINGLE),
-        .scale = MPU_SCALE,
-        .elasticity = SIM_ELASTICITY,
-        .rand = false,
-};
-
-const stage_t STAGE_SINGLEBOUNCY = {
-        STAGE_HEAD(SINGLE),
-        .scale = MPU_SCALE,
-        .elasticity = 255,
-        .rand = false,
-};
-
-const stage_t STAGE_BLANK = {
-        STAGE_HEAD(BLANK),
-        .scale = MPU_SCALE,
-        .elasticity = SIM_ELASTICITY,
-        .rand = true,
-};
-
-// Add new stage definitions here
-
-// List of stages in the order they are presented to the user
-const stage_t stages[STAGE_COUNT] = {
-        STAGE_RGBM,
-        STAGE_DISTTEST,
-        STAGE_ZIGZAG,
-        STAGE_DUAL,
-        STAGE_LINRAINBOW,
-        STAGE_MAZE,
-        STAGE_SINGLE,
-        STAGE_SQUARE8,
-        STAGE_SINGLEBOUNCY,
-        STAGE_BLANK,
-        // Add new stages to the list here
-};
-
-// Number of available animations
+// Number of available stages/universes/animations
+#define STAGE_COUNT count_of(stages)
+#define UNIVERSE_COUNT count_of(universes)
 #define ANIMATION_COUNT 10
 
-#define MODE_COUNT (STAGE_COUNT+ANIMATION_COUNT)
+#define MODE_COUNT (STAGE_COUNT+UNIVERSE_COUNT+ANIMATION_COUNT)
+
+const char* animation_names[ANIMATION_COUNT] = {
+        "Color Cycle",
+        "Color Cycle - Slow",
+        "Color Cycle - Ultra Slow",
+        "Perlin Noise",
+        "Snake, classic, 3tps",
+        "Snake, classic, 4tps",
+        "Snake, classic, 5tps",
+        "Snake, no wall collisions, 3tps",
+        "Snake, no wall collisions, 4tps",
+        "Snake, no wall collisions, 5tps",
+};
 
 MPU6050 mpu;
 
@@ -137,9 +61,45 @@ Simulation sim(DISPLAY_SIZE, DISPLAY_SIZE,
                );
 
 Snake snake;
+GameOfLife gol;
 
 uint32_t anim_framebuf[32*32];
 
+void start_stage();
+
+void gol_draw(uint32_t frame) {
+    // No need for MPU updates, since GoL doesn't have user input
+
+    absolute_time_t ts = get_absolute_time();
+    bool ticked = gol.tick();
+
+    absolute_time_t te = get_absolute_time();
+
+    int count = 0;
+    for (int x = 0; x < DISPLAY_SIZE; ++x) {
+        for (int y = 0; y < DISPLAY_SIZE; ++y) {
+
+            if (gol.universe[y][x]) {
+                count++;
+                gl_pixel(x, y, gol.alive_color);
+            } else {
+                gl_pixel(x, y, gol.dead_color);
+            }
+        }
+    }
+
+    if (count == 0) {
+        // No more remaining cells, reset simulation
+        // This avoids situations where the screen goes black even though it is running
+        printf("GoL: population reached zero after %u generations, restarting\n", gol.generation);
+        start_stage();
+    }
+
+    absolute_time_t et = get_absolute_time();
+    if (ticked) {
+        printf("GoL: gen=%u tick=%lldus draw=%lldus\n", gol.generation, absolute_time_diff_us(ts, te), absolute_time_diff_us(te, et));
+    }
+}
 
 void snake_draw(uint32_t frame) {
     // Snake, both modes
@@ -153,14 +113,14 @@ void snake_draw(uint32_t frame) {
         printf("Temp:  % 2.8f\n", mpu.temp);
     }
     absolute_time_t ts = get_absolute_time();
-    int ticked = snake.tick(mpu.ayn, mpu.axn, mpu.azn);  // X and Y swapped
+    bool ticked = snake.tick(mpu.ayn, mpu.axn, mpu.azn);  // X and Y swapped
 
     absolute_time_t te = get_absolute_time();
 
     snake.draw();
 
     absolute_time_t et = get_absolute_time();
-    if (ticked == 1) {
+    if (ticked) {
         printf("Snake: tick=%lldus draw=%lldus\n", absolute_time_diff_us(ts, te), absolute_time_diff_us(te, et));
     }
 }
@@ -259,6 +219,26 @@ void draw_anim(int id, uint32_t frame) {
     }
 }
 
+void start_stage() {
+    if (cur_stage < STAGE_COUNT) {
+        sim.clearAll();
+        sim.loadBackground(stages[cur_stage].bg);
+        sim.loadParticles(stages[cur_stage].particles, stages[cur_stage].particlecount);
+    } else if (cur_stage-STAGE_COUNT < UNIVERSE_COUNT) {
+        gol.load_stage(&universes[cur_stage-STAGE_COUNT]);
+    } else {
+        start_anim(cur_stage-STAGE_COUNT-UNIVERSE_COUNT);
+    }
+}
+
+const char* get_stage_name(int id) {
+    if (id < STAGE_COUNT + UNIVERSE_COUNT) {
+        return stage_names[id];
+    } else {
+        return animation_names[id-STAGE_COUNT-UNIVERSE_COUNT];
+    }
+}
+
 int main()
 {
     stdio_init_all();
@@ -298,9 +278,7 @@ int main()
     sleep_ms(100);  // Sleep a bit to allow for proper initialization of HUB75 driver main loop
 
     // Initialize Simulation
-    sim.clearAll();
-    sim.loadBackground(stages[cur_stage].bg);
-    sim.loadParticles(stages[cur_stage].particles, stages[cur_stage].particlecount);
+    start_stage();
 
     display_background = stages[cur_stage].bg;
 
@@ -324,15 +302,8 @@ int main()
                 // Button up
                 btn_reset_last = get_absolute_time();
 
-                printf("Reset!\n");
-
-                if (cur_stage < STAGE_COUNT) {
-                    sim.clearAll();
-                    sim.loadBackground(stages[cur_stage].bg);
-                    sim.loadParticles(stages[cur_stage].particles, stages[cur_stage].particlecount);
-                } else {
-                    start_anim(cur_stage-STAGE_COUNT);
-                }
+                printf("Reset! id=%d name '%s'\n", cur_stage, get_stage_name(cur_stage))                               ;
+                start_stage();
             } else if (!gpio_get(BTN_SELECT_PIN)){
                 // Pressed RESET while SELECT was pressed, reboot into bootsel mode
                 reset_usb_boot(0, 0);
@@ -350,18 +321,9 @@ int main()
                 printf("Select!\n");
                 cur_stage = (cur_stage + 1) % MODE_COUNT;
 
-                if (cur_stage < STAGE_COUNT) {
-                    sim.clearAll();
-                    sim.loadBackground(stages[cur_stage].bg);
-                    sim.loadParticles(stages[cur_stage].particles, stages[cur_stage].particlecount);
-                } else {
-                    start_anim(cur_stage-STAGE_COUNT);
-                }
+                start_stage();
 
-                printf("Selected stage with id %d\n", cur_stage);
-                if (cur_stage >= STAGE_COUNT) {
-                    printf("Animation id=%d\n", cur_stage-STAGE_COUNT);
-                }
+                printf("Selected stage with id %d and name '%s'\n", cur_stage, get_stage_name(cur_stage));
             }
 
             btn_select_pressed = gpio_get(BTN_SELECT_PIN);
@@ -459,8 +421,12 @@ int main()
                 display_background = anim_framebuf;
                 display_particlecount = 0;  // Animations could override this, but must do so every frame
 
-                // Render animation
-                draw_anim(cur_stage-STAGE_COUNT, frame);
+                // Render animation / GoL
+                if (cur_stage-STAGE_COUNT < UNIVERSE_COUNT) {
+                    gol_draw(frame);
+                } else {
+                    draw_anim(cur_stage - STAGE_COUNT - UNIVERSE_COUNT, frame);
+                }
 
                 // Signal other core that we are done
                 multicore_fifo_push_blocking(DISPLAY_TRIGGER_REDRAW_MAGIC_NUMBER);

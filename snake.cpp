@@ -55,9 +55,9 @@ void Snake::set_wall_collision(bool collide) {
     this->wall_collision = collide;
 }
 
-int Snake::tick(float ax, float ay, float az) {
+bool Snake::tick(float ax, float ay, float az) {
     if (game_over) {
-        return 0;
+        return false;
     }
 
     this->tickcounter--;
@@ -66,10 +66,10 @@ int Snake::tick(float ax, float ay, float az) {
         this->tickcounter = this->tickdiv;
         this->update(ax, ay, az);
 
-        return 1;
+        return true;
     }
 
-    return 0;
+    return true;
 }
 
 void Snake::update(float ax, float ay, float az) {

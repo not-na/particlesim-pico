@@ -26,7 +26,18 @@ add_executable(particlesim
         simulation.cpp simulation.h
         animations_basic.cpp animations_basic.h
         anim_helpers.cpp anim_helpers.h
-        snake.cpp snake.h)
+        snake.cpp snake.h
+        GameOfLife.cpp GameOfLife.h
+        images/img_all.h gol/gol_all.h
+        )
+
+# Compile stages and universes
+# TODO: add all files to output, via CMake generator expression
+add_custom_command(
+        OUTPUT gol/gol_all.h images/img_all.h
+        COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/png_to_header.py auto
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 pico_generate_pio_header(particlesim ${CMAKE_CURRENT_LIST_DIR}/hub75.pio)
 

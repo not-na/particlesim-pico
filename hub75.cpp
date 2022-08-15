@@ -164,6 +164,8 @@ void hub75_init() {
 }
 
 [[noreturn]] void __not_in_flash_func(hub75_main)() {
+    puts("Hello from HUB75!");
+
     DISPLAY_REDRAWSTATE redrawstate = DISPLAY_REDRAWSTATE_IDLE;
 
     // Fill both framebuffers with a default pattern
@@ -174,6 +176,8 @@ void hub75_init() {
             hub75_draw_pixel(display_back_buf, x, y, c);
         }
     }
+
+    puts("HUB75 is done initializing framebuffers");
 
     // Simulation waits until we are ready
     multicore_fifo_push_blocking(DISPLAY_TRIGGER_SIMULATION_MAGIC_NUMBER);

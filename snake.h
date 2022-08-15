@@ -26,7 +26,7 @@ public:
     Snake();
 
     void init();
-    int tick(float ax, float ay, float az);
+    bool tick(float ax, float ay, float az);
 
     void set_wall_collision(bool collide);
     void set_tickdiv(int div);

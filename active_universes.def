@@ -1,0 +1,16 @@
+// This file defines the order in which universes are selectable
+// Important: only comments and UNIVERSE macros are allowed here
+// UNIVERSE(NAME) takes the name of a universe, without the the gol_ prefix and capitalized
+// RANDUNIVERSE(NAME, PROB) takes a name and a probability for each tile to be alive at the start of the soup
+
+// Add new universes by appending a line with UNIVERSE(<capitalized filename without gol_ prefix and file ending>)
+UNIVERSE(GLIDER1)
+UNIVERSE(GLIDER2)
+UNIVERSE(PULSAR)
+UNIVERSE(P144)
+UNIVERSE(O112P15)
+UNIVERSE(SHIPS)
+UNIVERSE(RPENTOMINO)
+RANDUNIVERSE(SOUP1, 0.5)
+RANDUNIVERSE(SOUP2, 0.375)
+RANDUNIVERSE(SOUP3, 0.25)

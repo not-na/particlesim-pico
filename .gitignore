@@ -31,10 +31,14 @@
 *.out
 *.app
 
+**/__pycache__/
+
 build/
 cmake-build-debug/
 cmake-build-release/
 
 venv/
+
+scripts/rp2040.svd
 
 images/*.xcf

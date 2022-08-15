@@ -14,6 +14,9 @@ The panel driving code is partially based on the hub75 example from the
 with DMA support, double-buffering and smart redrawing while waiting for the
 DMA controller.
 
+Several other modes are also supported. These currently include snake and Conway's
+Game of Life.
+
 ## User Interface
 
 The only input method currently supported are the two buttons, `SELECT` and
@@ -26,6 +29,10 @@ These are first all the static images and simulation stages and then the animati
 
 Pressing `RESET` while `SELECT` is pressed causes the device to reboot into
 `BOOTSEL`-Mode, allowing for firmware updates over USB.
+
+### List of modes
+
+TODO
 
 ## Hardware
 
@@ -121,13 +128,14 @@ though this may not include the latest changes.
 ### Manual Compilation
 
 If you either want a more recent version or want to modify some part of the code
-or add stages, you will need to compile the firmware yourself. Otherwise, you
-can skip ahead to the [Installation](#installation) section.
+or add stages or universes, you will need to compile the firmware yourself.
+Otherwise, you can skip ahead to the [Installation](#installation) section.
 
 The general process of compiling for the Pico is explained in detail in the
 official [Getting Started Guide (PDF)](https://rptl.io/pico-get-started). Most
 important is that you have installed all the dependencies and have a local SDK
-installation.
+installation. The automatically run conversion script for stages and universes 
+also requires Python 3.7 or later to be available.
 
 Then, you should run the following commands while in the directory this file is in:
     
@@ -154,24 +162,16 @@ included in the firmware.
 
 The conversion script is written in Python and should run with Python 3.7 or newer.
 
-You can call `python3 png_to_header.py --help` for a more detailed help text.
+Usually, it is not necessary to manually run this conversion script. It will be
+automatically run by CMake on every build.
 
-Usually, a full recompilation is what you want, so just call
-`python3 png_to_header.py --directory images/`.
+To add new stages (or change their order/parameters), see the `active_stages.def`
+file.
 
-If you only changed existing images, this is all you need to do for the changes
-to be included on the next compilation.
+To add new Game of Life universes (or change their order), see the `active_universes.def`
+file.
 
-When adding (or removing) images, further edits must be made. Specifically, the
-image has to be registered in the main `particlesim.cpp` file. Simply open the
-file and append your new image name to the three arrays `bg_images`, `bg_image_particles`
-and `bg_image_particlecount`. Note that entries must be all uppercase.
-
-Also, the number after `#define BG_IMAGE_COUNT` has to be updated to reflect the
-new image. Otherwise, everything would compile fine but the new image could not
-be selected.
-
-#### Image Format
+#### Stage Image Format
 
 Images should be PNG files with 8 BPC (bits per channel) color depth in either
 RGB or RGBA format. Note that automatic particle detection only works with the
@@ -189,13 +189,28 @@ Currently, the amount of particles is limited to 512 per image. This is mainly
 because the simulation takes more time for larger amounts of particles. The 512
 particle limit is equivalent to every second on-screen pixel being a particle.
 
+#### Game of Life image Format
+
+Images should be PNG files with 8 BPC (bits per channel) color depth in either
+RGB or RGBA format.
+
+All pixels with a red channel value greater than `0x80` (128) are treated as alive.
+All others are treated as dead.
+
+It is recommended to simply use white pixels for alive cells and black pixels for
+dead cells.
+
+There is no limit to the number of active pixels. Note that the simulation wraps around,
+e.g. the top/bottom and left/right edges are connected.
+
 ### Installation
 
 Installing the firmware is very easy thanks to the UF2 Standard supported by the
-Pico / RP2040. To flash the firmware, hold down the BOOTSEL button *before* plugging
+Pico / RP2040. To flash the firmware, hold down the `BOOTSEL` button *before* plugging
 the board in the USB port.
 
-Alternatively, you can hold down `SELECT` and press `RESET` while select is pressed.
+Alternatively, you can hold down `SELECT` and press `RESET` while `SELECT` is pressed
+when updating an older version of the firmware.
 
 After a few seconds, a new flash drive with the name `RPI-RP2` should
 show up in your file manager. Simply drag the new firmware UF2 file onto this

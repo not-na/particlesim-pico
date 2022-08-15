@@ -6,6 +6,8 @@
 #include "pico/binary_info.h"
 #include "hardware/i2c.h"
 
+#define MPU6050_TEMP_SMOOTH (0.98)
+
 #define MPU6050_I2C_INSTANCE i2c0
 #define MPU6050_SDA_PIN 4
 #define MPU6050_SCL_PIN 5

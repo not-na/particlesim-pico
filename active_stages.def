@@ -1,0 +1,20 @@
+// This file defines the settings and order in which stages are presented
+// IMPORTANT: Only comments and STAGE / STAGE_ADV macros are allowed here
+// STAGE(NAME) takes the name of an image, capitalized and without the IMG_ prefix
+// STAGE_ADV(NAME, BGNAME, SCALE, ELASTICITY, RAND) takes more arguments:
+// BGNAME: same as NAME of STAGE(), since NAME here can be anything (for re-using the
+// same image for multiple stages
+// SCALE: MPU_SCALE for default, else a value between 1 and 255
+// ELASTICITY: SIM_ELASTICITY for default, else a value between 1 and 255
+// RAND: whether to enable random jitter to increase realism. Not recommended for small particle counts
+
+// Add new stages by appending a line with STAGE(<capitalized filename without img_ prefix and file ending>)
+STAGE(DUAL)
+STAGE_ADV(DISTTEST, DISTTEST, MPU_SCALE, 100, true)
+STAGE(ZIGZAG)
+STAGE(LINRAINBOW)
+STAGE(RGBM)
+STAGE_ADV(MAZE, MAZE, MPU_SCALE, 70, false)
+STAGE_ADV(SINGLE, SINGLE, MPU_SCALE, SIM_ELASTICITY, false)
+STAGE_ADV(SINGLEBOUNCY, SINGLE, MPU_SCALE, 255, false)
+STAGE(BLANK)
