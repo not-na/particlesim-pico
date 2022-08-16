@@ -10,7 +10,7 @@
  * Nested loops:
  * outer is per frame and infinite
  *      inner per row and DISPLAY_SCAN iterations
- *          innerest per bit for color
+ *          innermost per bit for color
  *
  *
  * Per row loop:
@@ -137,7 +137,6 @@ void hub75_init() {
             DISPLAY_CLKPIN
             );
     hub75_row_program_init(
-
             display_pio,
             display_sm_row,
             display_offset_row,

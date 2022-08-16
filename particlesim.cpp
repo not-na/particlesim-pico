@@ -72,6 +72,7 @@ void gol_draw(uint32_t frame) {
 
     absolute_time_t ts = get_absolute_time();
     bool ticked = gol.tick();
+    int period = gol.get_period();
 
     absolute_time_t te = get_absolute_time();
 
@@ -94,10 +95,16 @@ void gol_draw(uint32_t frame) {
         printf("GoL: population reached zero after %u generations, restarting\n", gol.generation);
         start_stage();
     }
+    if (gol.periodic_autorestart && period != -1 && period <= GOL_RESTART_PERIOD) {
+        // Restart if we are in a short periodic loop
+        // Note that this does not recognize moving patterns like gliders, only stuff like blinkers
+        printf("GoL: period=%d after %u generations, restarting\n", period, gol.generation);
+        start_stage();
+    }
 
     absolute_time_t et = get_absolute_time();
     if (ticked) {
-        printf("GoL: gen=%u tick=%lldus draw=%lldus\n", gol.generation, absolute_time_diff_us(ts, te), absolute_time_diff_us(te, et));
+        printf("GoL: gen=%u period=%d tick=%lldus draw=%lldus\n", gol.generation, period, absolute_time_diff_us(ts, te), absolute_time_diff_us(te, et));
     }
 }
 
@@ -147,37 +154,37 @@ void start_anim(int id) {
         case 4:
             // Snake, classic mode, 3 updates per second
             snake.set_wall_collision(true);
-            snake.set_tickdiv(40);
+            snake.set_tickdiv(SNAKE_TICKDIV_SLOW);
             snake.init();
             break;
         case 5:
             // Snake, classic mode, 4 updates per second
             snake.set_wall_collision(true);
-            snake.set_tickdiv(30);
+            snake.set_tickdiv(SNAKE_TICKDIV_MEDIUM);
             snake.init();
             break;
         case 6:
             // Snake, classic mode, 5 updates per second
             snake.set_wall_collision(true);
-            snake.set_tickdiv(24);
+            snake.set_tickdiv(SNAKE_TICKDIV_FAST);
             snake.init();
             break;
         case 7:
             // Snake, no wall collisions, 3 updates per second
             snake.set_wall_collision(false);
-            snake.set_tickdiv(40);
+            snake.set_tickdiv(SNAKE_TICKDIV_SLOW);
             snake.init();
             break;
         case 8:
             // Snake, no wall collisions, 4 updates per second
             snake.set_wall_collision(false);
-            snake.set_tickdiv(30);
+            snake.set_tickdiv(SNAKE_TICKDIV_MEDIUM);
             snake.init();
             break;
         case 9:
             // Snake, no wall collisions, 5 updates per second
             snake.set_wall_collision(false);
-            snake.set_tickdiv(24);
+            snake.set_tickdiv(SNAKE_TICKDIV_FAST);
             snake.init();
             break;
         // Add new animations here

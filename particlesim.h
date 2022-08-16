@@ -45,6 +45,7 @@ typedef struct stage {
 typedef struct universe {
     const uint8_t* cells;
     const float prob;
+    const bool period_restart;
 } universe_t;
 
 #define STAGE_HEAD(NAME) .bg=IMG_ ## NAME, .particles=IMG_ ## NAME ## _PARTICLES, .particlecount=IMG_ ## NAME ## _PARTICLE_COUNT

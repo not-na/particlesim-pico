@@ -10,6 +10,14 @@
 #define SNAKE_FLAG_BODY   (1 << 1)
 #define SNAKE_FLAG_TAIL   (1 << 2)
 
+#define SNAKE_HEADCOLOR_SLOW    0  // Red
+#define SNAKE_HEADCOLOR_MEDIUM  6  // Green
+#define SNAKE_HEADCOLOR_FAST    11 // Blue
+
+#define SNAKE_TICKDIV_SLOW      40
+#define SNAKE_TICKDIV_MEDIUM    30
+#define SNAKE_TICKDIV_FAST      24
+
 #define SNAKE_COLORS_COUNT (16)
 
 extern uint32_t snake_colors[];
@@ -35,7 +43,7 @@ public:
 private:
     void update(float ax, float ay, float az);
 
-    void spawn_fruit();
+    void spawn_fruit(uint8_t color=0xFF);
 
     snake_node_t* advance_snake(snake_node_t* newhead);
 

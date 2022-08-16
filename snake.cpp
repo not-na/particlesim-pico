@@ -45,10 +45,24 @@ void Snake::init() {
     this->prev_dx = 0;
     this->prev_dy = 0;
     this->grid[head_x][head_y].flags = SNAKE_FLAG_BODY | SNAKE_FLAG_TAIL;
-    this->grid[head_x][head_y].color = rand()%SNAKE_COLORS_COUNT;  // Random starting color
+
+    // Set head color based on speed
+    uint8_t headcolor;
+    if (tickdiv >= SNAKE_TICKDIV_SLOW) {
+        headcolor = SNAKE_HEADCOLOR_SLOW;
+    } else if (tickdiv >= SNAKE_TICKDIV_MEDIUM) {
+        headcolor = SNAKE_HEADCOLOR_MEDIUM;
+    } else {
+        headcolor = SNAKE_HEADCOLOR_FAST;
+    }
+    this->grid[head_x][head_y].color = headcolor;
 
     // Spawn first fruit
-    this->spawn_fruit();
+    if (wall_collision) {
+        spawn_fruit(7);
+    } else {
+        spawn_fruit(1);
+    }
 }
 
 void Snake::set_wall_collision(bool collide) {
@@ -205,7 +219,7 @@ snake_node_t *Snake::advance_snake(snake_node_t *newhead) {
 
 }
 
-void Snake::spawn_fruit() {
+void Snake::spawn_fruit(uint8_t color) {
     printf("Spawning new fruit...\n");
 
     if (this->length >= DISPLAY_SIZE*DISPLAY_SIZE) {
@@ -242,7 +256,11 @@ void Snake::spawn_fruit() {
     printf("Found fruit location: x=%u y=%u (idx=%u, max=%u)\n", pos_x, pos_y, idx, DISPLAY_SIZE*DISPLAY_SIZE-this->length);
 
     this->grid[pos_x][pos_y].flags |= SNAKE_FLAG_FRUIT;
-    this->grid[pos_x][pos_y].color = rand()%SNAKE_COLORS_COUNT;
+    if (color == 0xFF) {
+        // Generate random color if we aren't given one
+        color = rand()%SNAKE_COLORS_COUNT;
+    }
+    this->grid[pos_x][pos_y].color = color;
 }
 
 void Snake::draw() {

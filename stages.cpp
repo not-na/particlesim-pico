@@ -38,11 +38,18 @@ const stage_t stages[] = {
 // Universes for Game of Life
 #define UNIVERSE(NAME) const universe_t UNIVERSE_ ## NAME = { \
 .cells = GOL_ ## NAME,                                        \
-.prob = NAN,\
+.prob = NAN,                                                  \
+.period_restart = true,                                       \
+};
+#define UNIVERSE_NOPER(NAME) const universe_t UNIVERSE_ ## NAME = { \
+.cells = GOL_ ## NAME,                                              \
+.prob = NAN,                                                        \
+.period_restart = false,                                            \
 };
 #define RANDUNIVERSE(NAME, PROB) const universe_t UNIVERSE_ ## NAME = { \
 .cells = nullptr,                                                       \
 .prob = (PROB),                                                         \
+.period_restart = true,                                                \
 };
 
 // First pass for definition of config structs
@@ -50,8 +57,10 @@ const stage_t stages[] = {
 
 #undef UNIVERSE
 #undef RANDUNIVERSE
+#undef UNIVERSE_NOPER
 
 #define UNIVERSE(NAME) UNIVERSE_ ## NAME,
+#define UNIVERSE_NOPER(NAME) UNIVERSE_ ## NAME,
 #define RANDUNIVERSE(NAME, PROB) UNIVERSE_ ## NAME,
 
 // Second pass for definition of list of universes
@@ -61,6 +70,7 @@ const universe_t universes[] = {
 
 #undef UNIVERSE
 #undef RANDUNIVERSE
+#undef UNIVERSE_NOPER
 
 // -------------------------------------------------------------------------- //
 // Common third pass for list of names
@@ -69,7 +79,8 @@ const universe_t universes[] = {
 #define STAGE_ADV(NAME, BGNAME, SCALE, ELASTICITY, RAND) "Stage: " #NAME,
 
 #define UNIVERSE(NAME) "Universe: " # NAME,
-#define RANDUNIVERSE(NAME, PROB) "Universe: " # NAME,
+#define UNIVERSE_NOPER(NAME) "Universe [Periodic]: " # NAME,
+#define RANDUNIVERSE(NAME, PROB) "Universe [Soup]: " # NAME,
 
 const char* stage_names[] = {
 #include "active_stages.def"
@@ -81,3 +92,4 @@ const char* stage_names[] = {
 
 #undef UNIVERSE
 #undef RANDUNIVERSE
+#undef UNIVERSE_NOPER
