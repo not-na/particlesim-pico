@@ -1,5 +1,7 @@
 # `particlesim-pico` - PixelDust Simulator for the Raspberry Pi Pico / RP2040
 
+**[Deutsche Version](README_de.md)**
+
 This repository contains a particle simulation firmware for the
 Raspberry Pi Pico / RP2040 Microcontroller. It uses an MPU6050 for orientation
 input and any HUB75 RGB LED Matrix panel for output, though the code is currently
@@ -13,8 +15,9 @@ particles without slowing down at 120 ticks per second.
 The panel driving code is partially based on the hub75 example from the
 [pico-examples](https://github.com/raspberrypi/pico-examples) but was extended
 with DMA support, double-buffering and smart redrawing while waiting for the
-DMA controller. The driver uses 8-bit colors and has adjustable brightness without
-compromising color fidelity. By default, approximately half-brightness is enabled.
+DMA controller. The driver uses 8-bit (per Channel, e.g. 24-bit per Pixel) colors
+and has adjustable brightness without compromising color fidelity. By default,
+approximately half-brightness is enabled.
 
 Several other modes are also supported. These currently include Snake and Conway's
 Game of Life. See the list of modes below for further details.
@@ -79,7 +82,7 @@ TODO: Describe particle simulation details and caveats here
 
 #### Game of Life
 
-The modes with the IDs 9-15 are [Game of Life](https://en.wikipedia.org/wiki/The_Game_of_Life)
+The modes with the IDs 9-15 are [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
 cellular automata simulations.
 
 The simulation takes place in a 32x32 toroidal universe, e.g. opposing screen edges
@@ -202,7 +205,7 @@ either power source or the Pico.
 
 TODO: design case and link here
 
-## Software
+## Firmware
 
 The firmware is available as a UF2 on the
 [GitHub Releases Page](https://github.com/not-na/particlesim-pico/releases),
