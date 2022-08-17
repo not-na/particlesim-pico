@@ -249,6 +249,7 @@ const char* get_stage_name(int id) {
 int main()
 {
     stdio_init_all();
+    printf("particlesim-pico v%s\nBooting up...", VERSION);
 
     // Binary info
     bi_decl(bi_program_description("Particle simulator using MPU6050 and a 32x32 LED HUB75 Matrix"));
@@ -302,6 +303,32 @@ int main()
     absolute_time_t btn_reset_last = get_absolute_time();
     absolute_time_t btn_select_last = get_absolute_time();
 
+    if (!btn_select_pressed && !btn_reset_pressed) {
+        // Enter diagnosis mode
+
+        // Set up animation framebuffer for rendering
+        display_background = anim_framebuf;
+        display_particlecount = 0;
+
+        // Draw code
+        gl_fillscreen(BLACK);  // Clear screen
+
+        // Version code, displayed as a line of white pixels
+        gl_fillrect(0, 0, VERSION_NUM, 1, WHITE);
+
+        // TODO: add real-time text diagnostics, e.g. MPU readouts
+
+        // Trigger redraw, also consume FIFO token
+        uint32_t fifo_out = 0;
+        multicore_fifo_pop_timeout_us(FIFO_TIMEOUT, &fifo_out);
+        multicore_fifo_push_blocking(DISPLAY_TRIGGER_REDRAW_MAGIC_NUMBER);
+
+        // Sleep forever, since diagnosis mode is non-interactive
+        while (true) {
+            __wfi();
+        }
+    }
+
     while (true) {
         // Check simulation reset button
         if (gpio_get(BTN_RESET_PIN) != btn_reset_pressed) {
@@ -309,7 +336,7 @@ int main()
                 // Button up
                 btn_reset_last = get_absolute_time();
 
-                printf("Reset! id=%d name '%s'\n", cur_stage, get_stage_name(cur_stage))                               ;
+                printf("Reset! id=%d name '%s'\n", cur_stage, get_stage_name(cur_stage));
                 start_stage();
             } else if (!gpio_get(BTN_SELECT_PIN)){
                 // Pressed RESET while SELECT was pressed, reboot into bootsel mode

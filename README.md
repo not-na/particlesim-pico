@@ -14,8 +14,8 @@ The panel driving code is partially based on the hub75 example from the
 with DMA support, double-buffering and smart redrawing while waiting for the
 DMA controller.
 
-Several other modes are also supported. These currently include snake and Conway's
-Game of Life.
+Several other modes are also supported. These currently include Snake and Conway's
+Game of Life. See the list of modes below for further details.
 
 ## User Interface
 
@@ -30,9 +30,82 @@ These are first all the static images and simulation stages and then the animati
 Pressing `RESET` while `SELECT` is pressed causes the device to reboot into
 `BOOTSEL`-Mode, allowing for firmware updates over USB.
 
+Holding both `RESET` and `SELECT` during power-up will enter diagnosis mode,
+which displays diagnostic information on the screen for easy debugging without
+having to attach the device to a computer.
+
 ### List of modes
 
-TODO
+| ID  | Image                          | Name                                 | Description                                                                                                                                          |
+|-----|--------------------------------|--------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 0   | ![](images/img_dual.png)       | **Dual**                             | Two blocks of particles separated by a line.<br/>Initially designed as a test case for wall-glitching.                                               |
+| 1   | ![](images/img_disttest.png)   | **Distribution**                     | Intended to demonstrate a normal distribution.<br/>Doesn't work quite perfectly, since particles are not spheres.                                    |
+| 2   | ![](images/img_zigzag.png)     | **ZigZag**                           | Try to get all the particles into the lower "chamber" with as little moves as possible!                                                              |
+| 3   | ![](images/img_linrainbow.png) | **Rainbow**                          | Rainbow made of particles.<br/>While this currently has the most unique colors (32), it still does not demonstrate the full 24-bit colors available. |
+| 4   | ![](images/img_rgbm.png)       | **RGB-Testpattern**                  | Test pattern for orientation and correct channel connections.<br/>Should be Red-Green-Blue-Magenta from top to bottom.                               |
+| 5   | ![](images/img_maze.png)       | **Maze**                             | Static maze                                                                                                                                          |
+| 6   | ![](images/img_single.png)     | **Single Particle**                  | Single particle with normal elasticity                                                                                                               |
+| 7   | ![](images/img_single.png)     | **Single Particle, bouncy**          | Extra bouncy single particle<br/>This particle should bounce forever, as if it never loses energy. Can make cool patterns.                           |
+| 8   | ![](images/img_blank.png)      | **Blank Stage**                      | Blank stage<br/>For use when creating new stages and checking that all LEDs fully turn off.                                                          |
+| 9   | ![](gol/gol_glider1.png)       | **Single Glider**                    | Probably the most well-known Game of Life pattern.                                                                                                   |
+| 10  | ![](gol/gol_glider2.png)       | **Two Gliders**                      | Two gliders travelling perpendicular to each other<br/>The gliders should never collide with each other.                                             |
+| 11  | ![](gol/gol_pulsar.png)        | **Pulsar**                           | Pulsar with period 3 (P3)                                                                                                                            |
+| 12  | ![](gol/gol_p144.png)          | **P144**                             | Pulsar with period 144                                                                                                                               |
+| 13  | ![](gol/gol_o112p15.png)       | **O112P15**                          | Oscillating pattern that doesn't quite work due to the limited size                                                                                  |
+| 14  | ![](gol/gol_ships.png)         | **Ships**                            | Five spaceships travelling in formation.<br/>One HWSS, one MWSS and three LWSS                                                                       |
+| 15  | ![](gol/gol_rpentomino.png)    | **R-Pentomino Methuselah**           | Long-lived pattern that doesn't quite work as intended due to limited size                                                                           |
+| 16  |                                | **Soup with p=0.5**                  | Random soup with 50% density.<br/>Regenerated on every reset.                                                                                        |
+| 17  |                                | **Soup with p=0.375**                | Random soup with 37.5% density.<br/>Regenerated on every reset. Probably the best density for interesting and long-lived soups.                      |
+| 18  |                                | **Soup with p=0.25**                 | Random soup with 25% density.<br/>Regenerated on every reset.                                                                                        |
+| 19  |                                | **Color Cycle**                      | Normal speed color cycle.<br/>Period is approximately 6 seconds.                                                                                     |
+| 20  |                                | **Slow Color Cycle**                 | Slow speed color cycle.<br/>Period is approximately 24 seconds.                                                                                      |
+| 21  |                                | **Ultra Slow Color Cycle**           | Ultra slow speed color cycle.<br/>Period is approximately 60 seconds.                                                                                |
+| 22  |                                | **Perlin Noise**                     | Perlin noise.<br/>Currently not implemented, displays as a static magenta screen.                                                                    |
+| 23  |                                | **Snake, slow**                      | Snake, with wall collisions, slow<br/>Snake head will be blue and first fruit green.                                                                 |
+| 24  |                                | **Snake, medium**                    | Snake, with wall collisions, medium<br/>Snake head will be green and first fruit green.                                                              |
+| 25  |                                | **Snake, fast**                      | Snake, with wall collisions, fast<br/>Snake head will be red and first fruit green.                                                                  |
+| 26  |                                | **Snake, slow, no wall collision**   | Snake, with no wall collisions, slow<br/>Snake head will be blue and first fruit blue.                                                               |
+| 27  |                                | **Snake, medium, no wall collision** | Snake, with no wall collisions, medium<br/>Snake head will be green and first fruit blue.                                                            |
+| 28  |                                | **Snake, fast, no wall collision**   | Snake, with no wall collisions, fast<br/>Snake head will be red and first fruit blue.                                                                |
+
+#### Particle Simulations
+
+The modes with the IDs 0-8 are particle simulations.
+
+TODO: Describe particle simulation details and caveats here
+
+#### Game of Life
+
+The modes with the IDs 9-15 are [Game of Life](https://en.wikipedia.org/wiki/The_Game_of_Life)
+cellular automata simulations.
+
+The simulation takes place in a 32x32 toroidal universe, e.g. opposing screen edges
+are connected.
+
+For all stages (except `Pulsar`), the simulation engine automatically detects if
+the simulation has entered a cycle of length 4 or shorter. This only works for static
+cycles, moving cycles of patterns (like gliders) are ignored.
+Once such a cycle has been found, the simulation will automatically restart, generating
+a new soup in the case that a soup was running.
+
+#### Color Cycle Animations
+
+The modes with the IDs 19-21 are HSV color cycles, with entire screen filled
+with the same color.
+
+#### Perlin Noise
+
+The mode with the ID 22 displays a slowly changing perlin noise pattern.
+
+TODO: implement this mode
+
+#### Snake
+
+The modes with the IDs 23-28 implement the classic game Snake with different settings.
+
+See the list of modes for specific settings. The active settings are indicated by
+the color of the snake head and the first fruit (which becomes the first piece after
+the header once eaten).
 
 ## Hardware
 

@@ -14,6 +14,9 @@
 
 #include "anim_helpers.h"
 
+#define VERSION "0.1"
+#define VERSION_NUM 1
+
 #define TPS 120
 #define FIFO_TIMEOUT (1000/TPS*1000*2)
 
