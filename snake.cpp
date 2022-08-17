@@ -83,7 +83,7 @@ bool Snake::tick(float ax, float ay, float az) {
         return true;
     }
 
-    return true;
+    return false;
 }
 
 void Snake::update(float ax, float ay, float az) {
@@ -117,9 +117,10 @@ void Snake::update(float ax, float ay, float az) {
         dy = prev_dy;
     }
 
-    // Prevent direction change if user wants to reverse
+    // Prevent direction change if user wants to reverse onto itself
     if (!(grid[head_x][head_y].flags & SNAKE_FLAG_TAIL)) {
-        if (head_x+dx == grid[head_x][head_y].prev_x && head_y+dy == grid[head_x][head_y].prev_y) {
+        if ((head_x+dx+DISPLAY_SIZE)%DISPLAY_SIZE == grid[head_x][head_y].prev_x
+         && (head_y+dy+DISPLAY_SIZE)%DISPLAY_SIZE == grid[head_x][head_y].prev_y) {
             // Continue in same direction as before
             dx = prev_dx;
             dy = prev_dy;
@@ -141,8 +142,8 @@ void Snake::update(float ax, float ay, float az) {
         }
     } else {
         // Wrap around
-        new_x = new_x % DISPLAY_SIZE;
-        new_y = new_y % DISPLAY_SIZE;
+        new_x = (new_x+DISPLAY_SIZE) % DISPLAY_SIZE;
+        new_y = (new_y+DISPLAY_SIZE) % DISPLAY_SIZE;
     }
 
     snake_node_t* next = &grid[new_x][new_y];
@@ -231,6 +232,7 @@ void Snake::spawn_fruit(uint8_t color) {
     uint8_t pos_x=0, pos_y=0;
 
     // Find an empty spot by picking an index of remaining empty tiles
+    // This way, we don't have to retry many times near the end of the game
     int idx = rand()%(DISPLAY_SIZE*DISPLAY_SIZE-this->length);
 
     int i = 0;

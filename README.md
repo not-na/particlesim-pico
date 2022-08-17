@@ -5,14 +5,16 @@ Raspberry Pi Pico / RP2040 Microcontroller. It uses an MPU6050 for orientation
 input and any HUB75 RGB LED Matrix panel for output, though the code is currently
 optimized towards a 32x32 1/16 scan panel.
 
-The Algorithm is based on the
+The particle simulation algorithm is based on the
 [Adafruit_PixelDust](https://github.com/adafruit/Adafruit_PixelDust) library,
-but was re-written for maximum performance on the Pico.
+but was re-written for maximum performance on the Pico. It supports up to 512 (e.g. half the screen at 32x32)
+particles without slowing down at 120 ticks per second.
 
 The panel driving code is partially based on the hub75 example from the
 [pico-examples](https://github.com/raspberrypi/pico-examples) but was extended
 with DMA support, double-buffering and smart redrawing while waiting for the
-DMA controller.
+DMA controller. The driver uses 8-bit colors and has adjustable brightness without
+compromising color fidelity. By default, approximately half-brightness is enabled.
 
 Several other modes are also supported. These currently include Snake and Conway's
 Game of Life. See the list of modes below for further details.
@@ -23,9 +25,10 @@ The only input method currently supported are the two buttons, `SELECT` and
 `RESET`.
 
 By pressing `SELECT`, you can cycle through the different modes that are supported.
-These are first all the static images and simulation stages and then the animations.
+These are first all the simulation stages and game of life universes and then the animations and lastly snake.
 
-`RESET` resets the current mode to its starting point.
+`RESET` resets the current mode to its starting point. For modes with randomization,
+this will also regenerate whatever is randomly generated.
 
 Pressing `RESET` while `SELECT` is pressed causes the device to reboot into
 `BOOTSEL`-Mode, allowing for firmware updates over USB.
@@ -107,6 +110,9 @@ See the list of modes for specific settings. The active settings are indicated b
 the color of the snake head and the first fruit (which becomes the first piece after
 the header once eaten).
 
+Where wall collisions are disabled, the snake will simply wrap around to the opposite wall
+when trying to go through one.
+
 ## Hardware
 
 The electronics consist of the following items:
@@ -173,12 +179,10 @@ The following connections should be made:
 For the MPU6050, the following connections should be made:
 - SDA -> GP4
 - SCL -> GP5
-- INT -> 
 - VCC -> 3V3 Out
 - GND -> GND
 
-The INT connection is currently not used by the firmware, but may be added in
-future versions.
+The other signals exposed by the MPU6050 are not used and should be left unconnected.
 
 For the two Buttons, the following connections should be made:
 - `SELECT` Button -> GP2
@@ -187,6 +191,12 @@ For the two Buttons, the following connections should be made:
 
 Also, both the Pico and the panel will need to be supplied with power. If powered
 separately, the panel should be powered on first and powered down last.
+
+It is recommended to tie the VSYS pin to the panel's supply voltage and ensure
+that either only the Pico's USB port is used for power or an external power
+source also connected to VSYS, e.g. via a barrel jack. In this configuration, never
+connect both the USB port and the barrel jack at the same time, as this may damage
+either power source or the Pico.
 
 ### Case
 

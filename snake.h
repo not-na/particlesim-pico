@@ -22,7 +22,7 @@
 
 extern uint32_t snake_colors[];
 
-typedef struct {
+typedef struct snake_node {
     uint8_t prev_x;
     uint8_t prev_y;
     uint8_t color;
