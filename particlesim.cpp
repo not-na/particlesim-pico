@@ -67,6 +67,18 @@ uint32_t anim_framebuf[32*32];
 
 void start_stage();
 
+void print_statusinfo() {
+    printf("Accel: X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.ax, mpu.ay, mpu.az);
+    printf("Norm:  X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.axn, mpu.ayn, mpu.azn);
+    printf("Gyro:  X = % 3.6f, Y = % 3.6f, Z = % 3.6f\n", mpu.gx, mpu.gy, mpu.gz);
+
+    printf("Temp:  % 2.8f\n", mpu.temp);
+    
+    char id[2*PICO_UNIQUE_BOARD_ID_SIZE_BYTES+1];
+    pico_get_unique_board_id_string(id, 2*PICO_UNIQUE_BOARD_ID_SIZE_BYTES+1);
+    printf("ID: %s\n", id);
+}
+
 void gol_draw(uint32_t frame) {
     // No need for MPU updates, since GoL doesn't have user input
 
@@ -113,11 +125,7 @@ void snake_draw(uint32_t frame) {
     mpu.update();
 
     if (frame % (TPS / 1) == 0) {
-        printf("Accel: X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.ax, mpu.ay, mpu.az);
-        printf("Norm:  X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.axn, mpu.ayn, mpu.azn);
-        printf("Gyro:  X = % 3.6f, Y = % 3.6f, Z = % 3.6f\n", mpu.gx, mpu.gy, mpu.gz);
-
-        printf("Temp:  % 2.8f\n", mpu.temp);
+        print_statusinfo();
     }
     absolute_time_t ts = get_absolute_time();
     bool ticked = snake.tick(mpu.ayn, mpu.axn, mpu.azn);  // X and Y swapped
@@ -385,11 +393,7 @@ int main()
                 mpu.update();
 
                 if (frame % (TPS / 1) == 0) {
-                    printf("Accel: X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.ax, mpu.ay, mpu.az);
-                    printf("Norm:  X = % 1.8fg, Y = % 1.8fg, Z = % 1.8fg\n", mpu.axn, mpu.ayn, mpu.azn);
-                    printf("Gyro:  X = % 3.6f, Y = % 3.6f, Z = % 3.6f\n", mpu.gx, mpu.gy, mpu.gz);
-
-                    printf("Temp:  % 2.8f\n", mpu.temp);
+                    print_statusinfo();
                 }
 
                 absolute_time_t t2 = get_absolute_time();

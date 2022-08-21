@@ -5,6 +5,7 @@
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
 #include "pico/bootrom.h"
+#include "pico/unique_id.h"
 #include "hardware/i2c.h"
 #include "hardware/dma.h"
 #include "hardware/pio.h"

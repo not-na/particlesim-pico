@@ -52,6 +52,7 @@ target_link_libraries(particlesim pico_stdlib)
 # Add any user requested libraries
 target_link_libraries(particlesim
         pico_multicore
+        pico_unique_id
         hardware_i2c
         hardware_dma
         hardware_pio
