@@ -84,7 +84,7 @@ void GameOfLife::load_stage(const universe_t *universe_def) {
 
         for (int x = 0; x < W; ++x) {
             for (int y = 0; y < H; ++y) {
-                universe[y][x] = rand() >= thresh;
+                universe[y][x] = rand() <= thresh;
             }
         }
 
