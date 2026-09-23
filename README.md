@@ -1,11 +1,15 @@
 # `particlesim-pico` - PixelDust Simulator for the Raspberry Pi Pico / RP2040
 
+
+
 **[Deutsche Version](README_de.md)**
 
 This repository contains a particle simulation firmware for the
 Raspberry Pi Pico / RP2040 Microcontroller. It uses an MPU6050 for orientation
 input and any HUB75 RGB LED Matrix panel for output, though the code is currently
 optimized towards a 32x32 1/16 scan panel.
+
+Please also see the newer [matrixmirror](https://github.com/not-na/matrixmirror) project, which is based on this firmware but supports a wider variety of LED matrix configurations along with streaming video from a host software.
 
 The particle simulation algorithm is based on the
 [Adafruit_PixelDust](https://github.com/adafruit/Adafruit_PixelDust) library,
@@ -43,7 +47,7 @@ having to attach the device to a computer.
 ### List of modes
 
 | ID  | Image                          | Name                                 | Description                                                                                                                                          |
-|-----|--------------------------------|--------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --- | ------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0   | ![](images/img_dual.png)       | **Dual**                             | Two blocks of particles separated by a line.<br/>Initially designed as a test case for wall-glitching.                                               |
 | 1   | ![](images/img_disttest.png)   | **Distribution**                     | Intended to demonstrate a normal distribution.<br/>Doesn't work quite perfectly, since particles are not spheres.                                    |
 | 2   | ![](images/img_zigzag.png)     | **ZigZag**                           | Try to get all the particles into the lower "chamber" with as little moves as possible!                                                              |
@@ -119,6 +123,7 @@ when trying to go through one.
 ## Hardware
 
 The electronics consist of the following items:
+
 - RP2040-based microcontroller board, e.g. Raspberry Pi Pico
 - 5V Power Supply, rated for at least 2A (depends on LED Matrix)
 - MPU6050 Gyroscope/Accelerometer
@@ -164,6 +169,7 @@ It is recommended to keep the lengths of the individual wires similar and away f
 the MPU6050.
 
 The following connections should be made:
+
 - R0 -> GP6
 - G0 -> GP7
 - B0 -> GP8
@@ -180,6 +186,7 @@ The following connections should be made:
 - All GND -> GND
 
 For the MPU6050, the following connections should be made:
+
 - SDA -> GP4
 - SCL -> GP5
 - VCC -> 3V3 Out
@@ -188,6 +195,7 @@ For the MPU6050, the following connections should be made:
 The other signals exposed by the MPU6050 are not used and should be left unconnected.
 
 For the two Buttons, the following connections should be made:
+
 - `SELECT` Button -> GP2
 - `RESET` Button -> GP3
 - Other side of both Buttons -> GND
@@ -224,7 +232,7 @@ installation. The automatically run conversion script for stages and universes
 also requires Python 3.7 or later to be available.
 
 Then, you should run the following commands while in the directory this file is in:
-    
+
     $ mkdir build/
     $ cd build
     $ export PICO_SDK_PATH="<PATH TO SDK>"
